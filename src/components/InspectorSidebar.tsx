@@ -6,6 +6,7 @@ import {
   CatalogRow,
   FieldMapping,
   GridConfig,
+  PendingImportFile,
   StickerSlot,
   StudioTab,
   TemplateConfig,
@@ -36,7 +37,7 @@ interface InspectorSidebarProps {
   template: TemplateConfig;
   onUpdateTemplate: (next: TemplateConfig) => void;
   onUpdateMapping: (next: FieldMapping) => void;
-  onOpenImportModal: (pendingFile?: { text: string; filename: string }) => void;
+  onOpenImportModal: (pendingFile?: PendingImportFile) => void;
   autoSave: boolean;
   hasSavedSettings: boolean;
   hasUnsavedChanges: boolean;
@@ -97,10 +98,27 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
   // O(1) lookup indexes mirroring Excel:
   // B2 = SI.ND(BUSCARV(A2; db!$H:$J; 2; 0); BUSCARV(A2; db!$A:$F; 1; 0))
   // C2 = BUSCARV(B2; db!$A$2:$F$54000; 2; FALSO)
-  const { productByPrimaryCol, productByKey, aliasToTarget, targetToAliases } = useMemo(() => {
+  const {
+    productByPrimaryCol,
+    productByKey,
+    productByNumericKey,
+    aliasToTarget,
+    aliasByNumericCode,
+    targetToAliases,
+  } = useMemo(() => {
     const primaryCol = columns[0] || mapping.lookup;
     const primaryMap = new Map<string, CatalogRow>();
     const pMap = new Map<string, CatalogRow>();
+    const numMap = new Map<string, CatalogRow>();
+
+    const indexNumeric = (rawKey: string, row: CatalogRow) => {
+      if (/^\d+$/.test(rawKey)) {
+        const stripped = rawKey.replace(/^0+/, '') || '0';
+        if (!numMap.has(stripped)) {
+          numMap.set(stripped, row);
+        }
+      }
+    };
 
     for (const row of catalog) {
       const colAVal = String(row[primaryCol] || '').trim().toLowerCase();
@@ -110,21 +128,29 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
       if (colAVal && !pMap.has(colAVal)) {
         pMap.set(colAVal, row);
       }
+      indexNumeric(colAVal, row);
+
       const lookupVal = String(row[mapping.lookup] || '').trim().toLowerCase();
       if (lookupVal && !pMap.has(lookupVal)) {
         pMap.set(lookupVal, row);
       }
+      indexNumeric(lookupVal, row);
+
       const skuVal = String(row[mapping.sku] || '').trim().toLowerCase();
       if (skuVal && !pMap.has(skuVal)) {
         pMap.set(skuVal, row);
       }
+      indexNumeric(skuVal, row);
+
       const barcodeVal = String(row.barcode || '').trim().toLowerCase();
       if (barcodeVal && !pMap.has(barcodeVal)) {
         pMap.set(barcodeVal, row);
       }
+      indexNumeric(barcodeVal, row);
     }
 
     const aToT = new Map<string, string>();
+    const aNumToT = new Map<string, string>();
     const tToA = new Map<string, string[]>();
     for (const alias of aliases) {
       const code = alias.code.trim().toLowerCase();
@@ -132,6 +158,12 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
       if (!code || !target) continue;
       if (!aToT.has(code)) {
         aToT.set(code, target);
+      }
+      if (/^\d+$/.test(code)) {
+        const strippedCode = code.replace(/^0+/, '') || '0';
+        if (!aNumToT.has(strippedCode)) {
+          aNumToT.set(strippedCode, target);
+        }
       }
       const list = tToA.get(target);
       if (list) {
@@ -144,7 +176,9 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
     return {
       productByPrimaryCol: primaryMap,
       productByKey: pMap,
+      productByNumericKey: numMap,
       aliasToTarget: aToT,
+      aliasByNumericCode: aNumToT,
       targetToAliases: tToA,
     };
   }, [catalog, aliases, columns, mapping.lookup, mapping.sku]);
@@ -264,11 +298,18 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
       let match: CatalogRow | undefined;
       let matchedAliasCode: string | undefined;
 
+      const resolveRowByKey = (key: string): CatalogRow | undefined => {
+        const direct = productByPrimaryCol.get(key) || productByKey.get(key);
+        if (direct) return direct;
+        if (/^\d+$/.test(key)) {
+          return productByNumericKey.get(key.replace(/^0+/, '') || '0');
+        }
+        return undefined;
+      };
+
       const aliasTarget = aliasToTarget.get(q);
       if (aliasTarget) {
-        match =
-          productByPrimaryCol.get(aliasTarget) ||
-          productByKey.get(aliasTarget);
+        match = resolveRowByKey(aliasTarget);
         if (match) matchedAliasCode = raw;
       }
 
@@ -279,22 +320,14 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
 
       // Numeric leading-zero safeguard if exact H:J and A:F both missed
       if (!match && /^\d+$/.test(q)) {
-        const stripped = q.replace(/^0+/, '');
-        const padded = '0' + q;
-        const altTarget =
-          aliasToTarget.get(stripped) || aliasToTarget.get(padded);
+        const stripped = q.replace(/^0+/, '') || '0';
+        const altTarget = aliasByNumericCode.get(stripped);
         if (altTarget) {
-          match =
-            productByPrimaryCol.get(altTarget) ||
-            productByKey.get(altTarget);
+          match = resolveRowByKey(altTarget);
           if (match) matchedAliasCode = raw;
         }
         if (!match) {
-          match =
-            productByPrimaryCol.get(stripped) ||
-            productByKey.get(stripped) ||
-            productByPrimaryCol.get(padded) ||
-            productByKey.get(padded);
+          match = productByNumericKey.get(stripped);
         }
       }
 
@@ -348,10 +381,11 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (ev) => {
-      const text = typeof ev.target?.result === 'string' ? ev.target.result : '';
-      onOpenImportModal({ text, filename: file.name });
+      if (ev.target?.result instanceof ArrayBuffer) {
+        onOpenImportModal({ buffer: ev.target.result, filename: file.name });
+      }
     };
-    reader.readAsText(file);
+    reader.readAsArrayBuffer(file);
   };
 
   return (
@@ -1000,10 +1034,10 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
                   upload_file
                 </span>
                 <span className="font-body text-label-lg text-light-on-surface">
-                  Import CSV or JSON
+                  Import Excel, CSV or JSON
                 </span>
                 <span className="font-body text-label-sm text-light-outline">
-                  Supports headered CSV or JSON arrays
+                  Supports .xlsx, .xls, CSV, or JSON
                 </span>
               </div>
             </article>

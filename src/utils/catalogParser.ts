@@ -1,4 +1,25 @@
+import * as XLSX from 'xlsx';
 import { AliasMeta, CatalogAlias, CatalogRow, FieldMapping } from '../types';
+
+export interface ParsedCatalogResult {
+  rows: CatalogRow[];
+  columns: string[];
+  aliases: CatalogAlias[];
+  aliasMeta: AliasMeta | null;
+  sheetNames?: string[];
+  selectedSheet?: string;
+}
+
+function cleanCellText(value: string): string {
+  return value.replace(/\u00A0/g, ' ').trim();
+}
+
+function normalizeHeader(h: string): string {
+  return cleanCellText(h)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
 
 function splitCsvLine(line: string, delimiter: string): string[] {
   const result: string[] = [];
@@ -15,52 +36,101 @@ function splitCsvLine(line: string, delimiter: string): string[] {
         inQuotes = !inQuotes;
       }
     } else if (ch === delimiter && !inQuotes) {
-      result.push(current.trim());
+      result.push(cleanCellText(current));
       current = '';
     } else {
       current += ch;
     }
   }
-  result.push(current.trim());
+  result.push(cleanCellText(current));
   return result;
 }
 
-export interface ParsedCatalogResult {
-  rows: CatalogRow[];
-  columns: string[];
-  aliases: CatalogAlias[];
-  aliasMeta: AliasMeta | null;
+function decodeCsvBuffer(buffer: ArrayBuffer): string {
+  const utf8 = new TextDecoder('utf-8').decode(buffer);
+  // If UTF-8 produced replacement characters (\uFFFD), Excel likely exported ANSI / Windows-1252
+  if (utf8.includes('\uFFFD')) {
+    try {
+      return new TextDecoder('windows-1252').decode(buffer);
+    } catch {
+      return utf8;
+    }
+  }
+  return utf8;
 }
 
-export function parseCsv(text: string): ParsedCatalogResult {
-  const lines = text
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter((l) => l.length > 0);
+function formatExcelCell(cell: XLSX.CellObject | undefined): string {
+  if (!cell) return '';
+  if (cell.t === 'n' && typeof cell.v === 'number') {
+    const w = cell.w ? cell.w.trim() : '';
+    // Prevent scientific notation like 7.70101E+12 from corrupting EAN/UPC barcodes
+    if (!w || /[eE][+-]?\d+/.test(w)) {
+      if (Number.isInteger(cell.v)) {
+        return cell.v.toLocaleString('fullwide', { useGrouping: false });
+      }
+      return String(cell.v);
+    }
+    return w;
+  }
+  if (cell.w !== undefined && cell.w !== null) {
+    return cleanCellText(String(cell.w));
+  }
+  if (cell.v !== undefined && cell.v !== null) {
+    return cleanCellText(String(cell.v));
+  }
+  return '';
+}
 
-  if (lines.length < 2) {
-    throw new Error('CSV must include a header row and at least one data row.');
+function sheetToGrid(sheet: XLSX.WorkSheet): string[][] {
+  const ref = sheet['!ref'];
+  if (!ref) return [];
+  const range = XLSX.utils.decode_range(ref);
+  const grid: string[][] = [];
+
+  for (let r = range.s.r; r <= range.e.r; r++) {
+    const row: string[] = [];
+    let rowHasValue = false;
+    for (let c = range.s.c; c <= range.e.c; c++) {
+      const addr = XLSX.utils.encode_cell({ r, c });
+      const val = formatExcelCell(sheet[addr] as XLSX.CellObject | undefined);
+      if (val) rowHasValue = true;
+      row.push(val);
+    }
+    if (rowHasValue) {
+      grid.push(row);
+    }
+  }
+  return grid;
+}
+
+function findHeaderRowIndex(grid: string[][]): number {
+  const keywords = ['articulo', 'codigo', 'precio', 'desc', 'sku', 'barcode', 'price'];
+  const scanLimit = Math.min(10, grid.length);
+  for (let r = 0; r < scanLimit; r++) {
+    const row = grid[r];
+    const nonEmpty = row.filter((c) => c.trim() !== '').length;
+    if (nonEmpty < 2) continue;
+    const hitCount = row.filter((c) => {
+      const n = normalizeHeader(c);
+      return keywords.some((k) => n.includes(k));
+    }).length;
+    if (hitCount >= 2) return r;
+  }
+  return 0;
+}
+
+export function parseTabularGrid(grid: string[][]): ParsedCatalogResult {
+  if (grid.length < 2) {
+    throw new Error('Spreadsheet must include a header row and at least one data row.');
   }
 
-  const headerLine = lines[0].replace(/^\uFEFF/, '');
-  const commaCount = (headerLine.match(/,/g) || []).length;
-  const semiCount = (headerLine.match(/;/g) || []).length;
-  const tabCount = (headerLine.match(/\t/g) || []).length;
-
-  let delimiter = ',';
-  if (semiCount > commaCount && semiCount >= tabCount) {
-    delimiter = ';';
-  } else if (tabCount > commaCount && tabCount > semiCount) {
-    delimiter = '\t';
-  }
-
-  const rawHeaders = splitCsvLine(headerLine, delimiter);
-  const dataLines = lines.slice(1).map((line) => splitCsvLine(line, delimiter));
+  const headerIdx = findHeaderRowIndex(grid);
+  const rawHeaders = grid[headerIdx];
+  const dataLines = grid.slice(headerIdx + 1);
 
   // Detect side-by-side Excel lookup layout:
   // e.g. Articulo; Desc. Articulo; L. de precio; Descripcion; Vigencia; Precio; ; Codigo; Articulo; Descripcion
-  // H:J matrix where H is barcode (Codigo) and I is canonical key (Articulo) mapped into A:F.
-  const normalized = rawHeaders.map((h) => h.trim().toLowerCase());
+  const normalized = rawHeaders.map((h) => normalizeHeader(h));
   let aliasCodeIdx = -1;
   let aliasTargetIdx = -1;
 
@@ -68,25 +138,35 @@ export function parseCsv(text: string): ParsedCatalogResult {
     const h = normalized[i];
     const isCodeCol =
       h === 'codigo' ||
-      h === 'código' ||
       h === 'barcode' ||
       h === 'ean' ||
       h === 'upc' ||
-      (i >= 4 && (h.includes('codigo') || h.includes('código') || h.includes('barcode')));
+      (i >= 4 && (h.includes('codigo') || h.includes('barcode') || h.includes('ean')));
     if (!isCodeCol) continue;
 
-    // Look for a column after i whose header duplicates one of the left-side headers (e.g. `Articulo`)
     const leftSet = new Set(normalized.slice(0, i).filter(Boolean));
-    const dupIdx = normalized.findIndex(
-      (col, idx) => idx > i && col !== '' && leftSet.has(col)
-    );
+    const nextCol = i + 1 < normalized.length ? normalized[i + 1] : '';
     const hasEmptyGapBefore = i > 0 && normalized[i - 1] === '';
+
+    if (nextCol !== '' && leftSet.has(nextCol)) {
+      aliasCodeIdx = i;
+      aliasTargetIdx = i + 1;
+      break;
+    }
+
+    const dupIdx = normalized.findIndex(
+      (col, idx) =>
+        idx > i &&
+        col !== '' &&
+        leftSet.has(col) &&
+        !col.includes('desc')
+    );
 
     if (dupIdx !== -1) {
       aliasCodeIdx = i;
       aliasTargetIdx = dupIdx;
       break;
-    } else if (hasEmptyGapBefore && i + 1 < normalized.length && normalized[i + 1] !== '') {
+    } else if (hasEmptyGapBefore && nextCol !== '') {
       aliasCodeIdx = i;
       aliasTargetIdx = i + 1;
       break;
@@ -99,17 +179,16 @@ export function parseCsv(text: string): ParsedCatalogResult {
 
   if (aliasCodeIdx !== -1 && aliasTargetIdx !== -1) {
     aliasMeta = {
-      codeCol: rawHeaders[aliasCodeIdx].trim(),
-      targetCol: rawHeaders[aliasTargetIdx].trim(),
+      codeCol: cleanCellText(rawHeaders[aliasCodeIdx] ?? ''),
+      targetCol: cleanCellText(rawHeaders[aliasTargetIdx] ?? ''),
     };
   }
 
-  // Build deduplicated column descriptors for the main A:F table (ignoring blank separator columns)
   const usedNames = new Map<string, number>();
   const mainCols: { index: number; name: string }[] = [];
 
   for (let i = 0; i < mainEndIdx; i++) {
-    const rawName = rawHeaders[i].trim();
+    const rawName = (rawHeaders[i] ?? '').trim();
     if (!rawName) continue;
 
     const count = (usedNames.get(rawName) || 0) + 1;
@@ -119,7 +198,7 @@ export function parseCsv(text: string): ParsedCatalogResult {
   }
 
   if (mainCols.length === 0) {
-    throw new Error('No valid column headers found in CSV.');
+    throw new Error('No valid column headers found.');
   }
 
   const rows: CatalogRow[] = [];
@@ -147,7 +226,7 @@ export function parseCsv(text: string): ParsedCatalogResult {
   }
 
   if (rows.length === 0) {
-    throw new Error('No valid data rows found in CSV.');
+    throw new Error('No valid data rows found.');
   }
 
   return {
@@ -156,6 +235,90 @@ export function parseCsv(text: string): ParsedCatalogResult {
     aliases,
     aliasMeta,
   };
+}
+
+export function parseCsv(text: string): ParsedCatalogResult {
+  const rawLines = text
+    .split(/\r?\n/)
+    .map((l) => l.replace(/^\uFEFF/, '').trim())
+    .filter((l) => l.length > 0);
+
+  if (rawLines.length < 2) {
+    throw new Error('CSV must include a header row and at least one data row.');
+  }
+
+  let lines = rawLines;
+  let explicitDelimiter: string | null = null;
+  const sepMatch = /^sep=(.)$/i.exec(rawLines[0]);
+  if (sepMatch) {
+    explicitDelimiter = sepMatch[1];
+    lines = rawLines.slice(1);
+  }
+
+  if (lines.length < 2) {
+    throw new Error('CSV must include a header row and at least one data row.');
+  }
+
+  let delimiter = explicitDelimiter ?? ',';
+  if (!explicitDelimiter) {
+    const sample = lines.slice(0, 10).join('\n');
+    const commaCount = (sample.match(/,/g) || []).length;
+    const semiCount = (sample.match(/;/g) || []).length;
+    const tabCount = (sample.match(/\t/g) || []).length;
+
+    if (semiCount > commaCount && semiCount >= tabCount) {
+      delimiter = ';';
+    } else if (tabCount > commaCount && tabCount > semiCount) {
+      delimiter = '\t';
+    }
+  }
+
+  const grid = lines.map((line) => splitCsvLine(line, delimiter));
+  return parseTabularGrid(grid);
+}
+
+export function parseExcelBuffer(
+  buffer: ArrayBuffer,
+  preferredSheet?: string
+): ParsedCatalogResult {
+  const workbook = XLSX.read(buffer, { type: 'array', cellNF: true, cellText: true });
+  const sheetNames = workbook.SheetNames;
+  if (!sheetNames || sheetNames.length === 0) {
+    throw new Error('Excel workbook contains no sheets.');
+  }
+
+  let targetSheetName = preferredSheet;
+  if (!targetSheetName || !sheetNames.includes(targetSheetName)) {
+    // Prefer a sheet named "db" (case-insensitive), matching standard Excel template
+    const dbSheet = sheetNames.find((s) => s.trim().toLowerCase() === 'db');
+    targetSheetName = dbSheet || sheetNames[0];
+  }
+
+  const sheet = workbook.Sheets[targetSheetName];
+  if (!sheet) {
+    throw new Error(`Sheet "${targetSheetName}" could not be read.`);
+  }
+
+  const grid = sheetToGrid(sheet);
+  const parsed = parseTabularGrid(grid);
+  return {
+    ...parsed,
+    sheetNames,
+    selectedSheet: targetSheetName,
+  };
+}
+
+export function parseCatalogFileBuffer(
+  buffer: ArrayBuffer,
+  filename: string,
+  preferredSheet?: string
+): ParsedCatalogResult {
+  const lower = filename.toLowerCase();
+  if (lower.endsWith('.xlsx') || lower.endsWith('.xls') || lower.endsWith('.xlsm')) {
+    return parseExcelBuffer(buffer, preferredSheet);
+  }
+  const text = decodeCsvBuffer(buffer);
+  return parseCatalogText(text, filename);
 }
 
 export function parseCatalogText(
@@ -230,11 +393,11 @@ export function autoGuessMapping(columns: string[]): FieldMapping {
     fallback = columns[0]
   ) => {
     for (const exact of exactCandidates) {
-      const found = columns.find((c) => c.toLowerCase().trim() === exact);
+      const found = columns.find((c) => normalizeHeader(c) === exact);
       if (found) return found;
     }
     for (const pattern of partialPatterns) {
-      const found = columns.find((c) => c.toLowerCase().includes(pattern));
+      const found = columns.find((c) => normalizeHeader(c).includes(pattern));
       if (found) return found;
     }
     return fallback;
@@ -242,7 +405,7 @@ export function autoGuessMapping(columns: string[]): FieldMapping {
 
   return {
     lookup: findCol(
-      ['articulo', 'artículo', 'barcode', 'ean', 'upc', 'codigo', 'código', 'sku', 'code', 'id'],
+      ['articulo', 'barcode', 'ean', 'upc', 'codigo', 'sku', 'code', 'id'],
       ['articulo', 'barcode', 'ean', 'upc', 'gtin', 'codigo', 'sku', 'code', 'id']
     ),
     price: findCol(
@@ -250,11 +413,11 @@ export function autoGuessMapping(columns: string[]): FieldMapping {
       ['precio', 'price', 'valor', 'cost', 'amount', 'pvp']
     ),
     description: findCol(
-      ['desc. articulo', 'desc articulo', 'description', 'producto', 'descripcion', 'descripción', 'name', 'title', 'nombre'],
+      ['desc. articulo', 'desc articulo', 'description', 'producto', 'descripcion', 'name', 'title', 'nombre'],
       ['desc. art', 'desc art', 'description', 'producto', 'desc', 'name', 'title', 'nombre', 'item']
     ),
     sku: findCol(
-      ['sku', 'articulo', 'artículo', 'ref', 'referencia', 'code', 'codigo', 'código', 'barcode'],
+      ['sku', 'articulo', 'ref', 'referencia', 'code', 'codigo', 'barcode'],
       ['sku', 'articulo', 'ref', 'code', 'codigo', 'barcode']
     ),
   };

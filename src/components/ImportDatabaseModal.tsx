@@ -1,6 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AliasMeta, CatalogAlias, CatalogRow, FieldMapping } from '../types';
-import { autoGuessMapping, parseCatalogText } from '../utils/catalogParser';
+import {
+  AliasMeta,
+  CatalogAlias,
+  CatalogRow,
+  FieldMapping,
+  PendingImportFile,
+} from '../types';
+import {
+  autoGuessMapping,
+  parseCatalogFileBuffer,
+  parseCatalogText,
+  ParsedCatalogResult,
+} from '../utils/catalogParser';
 
 interface ImportDatabaseModalProps {
   isOpen: boolean;
@@ -11,7 +22,7 @@ interface ImportDatabaseModalProps {
   initialAliasMeta: AliasMeta | null;
   initialFilename: string;
   initialMapping: FieldMapping;
-  pendingFile?: { text: string; filename: string } | null;
+  pendingFile?: PendingImportFile | null;
   onApply: (payload: {
     catalog: CatalogRow[];
     columns: string[];
@@ -44,6 +55,21 @@ export const ImportDatabaseModal: React.FC<ImportDatabaseModalProps> = ({
   const [pasteText, setPasteText] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [fileBuffer, setFileBuffer] = useState<ArrayBuffer | null>(null);
+  const [sheetNames, setSheetNames] = useState<string[]>([]);
+  const [selectedSheet, setSelectedSheet] = useState<string>('');
+
+  const applyParsedResult = (parsed: ParsedCatalogResult, name: string) => {
+    setFilename(name);
+    setRows(parsed.rows);
+    setColumns(parsed.columns);
+    setAliases(parsed.aliases);
+    setAliasMeta(parsed.aliasMeta);
+    setMapping(autoGuessMapping(parsed.columns));
+    setSheetNames(parsed.sheetNames ?? []);
+    setSelectedSheet(parsed.selectedSheet ?? '');
+    setErrorMsg(null);
+  };
 
   useEffect(() => {
     if (!isOpen) return;
@@ -52,16 +78,30 @@ export const ImportDatabaseModal: React.FC<ImportDatabaseModalProps> = ({
 
     if (pendingFile) {
       try {
-        const parsed = parseCatalogText(pendingFile.text, pendingFile.filename);
-        setFilename(pendingFile.filename);
-        setRows(parsed.rows);
-        setColumns(parsed.columns);
-        setAliases(parsed.aliases);
-        setAliasMeta(parsed.aliasMeta);
-        setMapping(autoGuessMapping(parsed.columns));
+        if (pendingFile.buffer) {
+          setFileBuffer(pendingFile.buffer);
+          const parsed = parseCatalogFileBuffer(
+            pendingFile.buffer,
+            pendingFile.filename
+          );
+          applyParsedResult(parsed, pendingFile.filename);
+        } else {
+          setFileBuffer(null);
+          const parsed = parseCatalogText(
+            pendingFile.text ?? '',
+            pendingFile.filename
+          );
+          applyParsedResult(parsed, pendingFile.filename);
+        }
       } catch (err) {
         setFilename(pendingFile.filename);
-        setErrorMsg(err instanceof Error ? err.message : 'Could not parse CSV or JSON format.');
+        setSheetNames([]);
+        setSelectedSheet('');
+        setErrorMsg(
+          err instanceof Error
+            ? err.message
+            : 'Could not parse Excel, CSV, or JSON format.'
+        );
         setRows(initialCatalog);
         setColumns(initialColumns);
         setAliases(initialAliases);
@@ -69,6 +109,9 @@ export const ImportDatabaseModal: React.FC<ImportDatabaseModalProps> = ({
         setMapping(initialMapping);
       }
     } else {
+      setFileBuffer(null);
+      setSheetNames([]);
+      setSelectedSheet('');
       setFilename(initialFilename);
       setRows(initialCatalog);
       setColumns(initialColumns);
@@ -113,20 +156,44 @@ export const ImportDatabaseModal: React.FC<ImportDatabaseModalProps> = ({
     return map;
   }, [aliases]);
 
+  const unmatchedAliasCount = useMemo(() => {
+    if (aliases.length === 0) return 0;
+    const exactKeys = new Set<string>();
+    const numericKeys = new Set<string>();
+    for (const r of rows) {
+      const k = String(r[mapping.lookup] || '').trim().toLowerCase();
+      if (!k) continue;
+      exactKeys.add(k);
+      if (/^\d+$/.test(k)) {
+        numericKeys.add(k.replace(/^0+/, '') || '0');
+      }
+    }
+    let unmatched = 0;
+    for (const a of aliases) {
+      const t = a.target.trim().toLowerCase();
+      if (!t) continue;
+      if (exactKeys.has(t)) continue;
+      if (/^\d+$/.test(t) && numericKeys.has(t.replace(/^0+/, '') || '0')) {
+        continue;
+      }
+      unmatched++;
+    }
+    return unmatched;
+  }, [aliases, rows, mapping.lookup]);
+
   if (!isOpen) return null;
 
   const loadTextData = (text: string, name: string) => {
     try {
+      setFileBuffer(null);
       const parsed = parseCatalogText(text, name);
-      setFilename(name);
-      setRows(parsed.rows);
-      setColumns(parsed.columns);
-      setAliases(parsed.aliases);
-      setAliasMeta(parsed.aliasMeta);
-      setMapping(autoGuessMapping(parsed.columns));
-      setErrorMsg(null);
+      applyParsedResult(parsed, name);
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : 'Could not parse CSV or JSON format.');
+      setErrorMsg(
+        err instanceof Error
+          ? err.message
+          : 'Could not parse CSV or JSON format.'
+      );
     }
   };
 
@@ -134,10 +201,39 @@ export const ImportDatabaseModal: React.FC<ImportDatabaseModalProps> = ({
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (e) => {
-      const text = typeof e.target?.result === 'string' ? e.target.result : '';
-      loadTextData(text, file.name);
+      const result = e.target?.result;
+      if (!(result instanceof ArrayBuffer)) return;
+      try {
+        setFileBuffer(result);
+        const parsed = parseCatalogFileBuffer(result, file.name);
+        applyParsedResult(parsed, file.name);
+      } catch (err) {
+        setFilename(file.name);
+        setSheetNames([]);
+        setSelectedSheet('');
+        setErrorMsg(
+          err instanceof Error
+            ? err.message
+            : 'Could not parse Excel, CSV, or JSON format.'
+        );
+      }
     };
-    reader.readAsText(file);
+    reader.readAsArrayBuffer(file);
+  };
+
+  const handleSheetChange = (nextSheet: string) => {
+    if (!fileBuffer) return;
+    try {
+      const parsed = parseCatalogFileBuffer(fileBuffer, filename, nextSheet);
+      applyParsedResult(parsed, filename);
+    } catch (err) {
+      setSelectedSheet(nextSheet);
+      setErrorMsg(
+        err instanceof Error
+          ? err.message
+          : `Could not parse sheet "${nextSheet}".`
+      );
+    }
   };
 
   const handleParsePaste = () => {
@@ -191,10 +287,10 @@ export const ImportDatabaseModal: React.FC<ImportDatabaseModalProps> = ({
                 id="import-modal-title"
                 className="font-headline text-headline-md text-light-on-surface"
               >
-                Import CSV or JSON Database
+                Import Excel, CSV or JSON Database
               </h2>
               <p className="font-body text-body-md text-light-on-surface-variant">
-                Upload your product catalog and map columns for barcode auto-fill.
+                Upload your Excel workbook (.xlsx/.xls), CSV, or JSON catalog for barcode lookup.
               </p>
             </div>
           </div>
@@ -248,15 +344,34 @@ export const ImportDatabaseModal: React.FC<ImportDatabaseModalProps> = ({
                 </button>
               </div>
 
-              <span className="inline-flex items-center gap-1.5 px-gutter-md py-1 rounded-full bg-success-container text-on-success-container font-mono text-mono-sm">
-                <span className="material-symbols-outlined text-body-md" aria-hidden="true">
-                  check_circle
+              <div className="flex flex-wrap items-center gap-gutter-sm">
+                {sheetNames.length > 1 && (
+                  <label className="inline-flex items-center gap-gutter-xs font-body text-label-md text-light-on-surface-variant">
+                    <span>Sheet:</span>
+                    <select
+                      value={selectedSheet}
+                      onChange={(e) => handleSheetChange(e.target.value)}
+                      className="rounded bg-light-surface-container-lowest border border-light-outline-variant px-gutter-sm py-1 font-mono text-mono-sm text-light-on-surface focus:border-light-primary focus:ring-1 focus:ring-light-primary focus:outline-none"
+                    >
+                      {sheetNames.map((name) => (
+                        <option key={name} value={name}>
+                          {name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+
+                <span className="inline-flex items-center gap-1.5 px-gutter-md py-1 rounded-full bg-success-container text-on-success-container font-mono text-mono-sm">
+                  <span className="material-symbols-outlined text-body-md" aria-hidden="true">
+                    check_circle
+                  </span>
+                  <span>
+                    {filename} · {rows.length} rows
+                    {aliases.length > 0 ? ` · ${aliases.length} aliases` : ''}
+                  </span>
                 </span>
-                <span>
-                  {filename} · {rows.length} rows
-                  {aliases.length > 0 ? ` · ${aliases.length} aliases` : ''}
-                </span>
-              </span>
+              </div>
             </div>
 
             {sourceMode === 'file' ? (
@@ -285,10 +400,10 @@ export const ImportDatabaseModal: React.FC<ImportDatabaseModalProps> = ({
                   </div>
                   <div>
                     <p className="font-body text-title-md text-light-on-surface">
-                      Drop a .csv or .json file here, or browse
+                      Drop a .xlsx, .csv, or .json file here, or browse
                     </p>
                     <p className="font-body text-body-md text-light-on-surface-variant">
-                      Comma or semicolon CSV with headers, or a JSON array of product objects.
+                      Direct Excel workbooks (auto-selects db sheet &amp; preserves full barcodes), CSV, or JSON.
                     </p>
                   </div>
                 </div>
@@ -297,7 +412,7 @@ export const ImportDatabaseModal: React.FC<ImportDatabaseModalProps> = ({
                 </span>
                 <input
                   type="file"
-                  accept=".csv,.json,text/csv,application/json"
+                  accept=".xlsx,.xls,.xlsm,.csv,.json,text/csv,application/json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
                   className="hidden"
                   onChange={(e) => {
                     handleFile(e.target.files?.[0]);
@@ -514,7 +629,8 @@ export const ImportDatabaseModal: React.FC<ImportDatabaseModalProps> = ({
         <footer className="px-gutter-xl py-gutter-lg bg-light-surface-container-low border-t border-light-outline-variant flex flex-wrap items-center justify-between gap-gutter-md">
           <p className="font-mono text-mono-sm text-light-on-surface-variant tabular-nums">
             {validCount} valid records
-            {aliases.length > 0 ? ` · ${aliases.length} barcode aliases` : ''} ·{' '}
+            {aliases.length > 0 ? ` · ${aliases.length} barcode aliases` : ''}
+            {unmatchedAliasCount > 0 ? ` (${unmatchedAliasCount} unmatched in A:F)` : ''} ·{' '}
             {missingLookupCount} missing lookup keys
           </p>
           <div className="flex items-center gap-gutter-sm">

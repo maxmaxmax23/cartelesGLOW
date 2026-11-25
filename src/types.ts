@@ -52,3 +52,9 @@ export interface StickerSlot {
 export type StudioTab = 'scan' | 'grid' | 'template' | 'data';
 
 export type ZoomLevel = 0.65 | 0.82 | 1;
+
+export interface PendingImportFile {
+  buffer?: ArrayBuffer;
+  text?: string;
+  filename: string;
+}

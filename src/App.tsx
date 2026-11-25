@@ -10,6 +10,7 @@ import {
   CatalogRow,
   FieldMapping,
   GridConfig,
+  PendingImportFile,
   StickerSlot,
   StudioTab,
   TemplateConfig,
@@ -100,10 +101,8 @@ export default function App() {
   } | null>(null);
 
   const [importModalOpen, setImportModalOpen] = useState<boolean>(false);
-  const [pendingImportFile, setPendingImportFile] = useState<{
-    text: string;
-    filename: string;
-  } | null>(null);
+  const [pendingImportFile, setPendingImportFile] =
+    useState<PendingImportFile | null>(null);
   const [copiedSlot, setCopiedSlot] = useState<StickerSlot | null>(null);
 
   const scannerInputRef = useRef<HTMLInputElement | null>(null);
@@ -402,7 +401,7 @@ export default function App() {
     setScanFeedback(null);
   };
 
-  const handleOpenImportModal = (pending?: { text: string; filename: string }) => {
+  const handleOpenImportModal = (pending?: PendingImportFile) => {
     setPendingImportFile(pending ?? null);
     setImportModalOpen(true);
   };
