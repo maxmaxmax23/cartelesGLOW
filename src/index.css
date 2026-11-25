@@ -1,0 +1,194 @@
+@import "tailwindcss";
+
+@theme {
+  --color-success: #15803D;
+  --color-on-success: #FFFFFF;
+  --color-success-container: #DCFCE7;
+  --color-on-success-container: #14532D;
+  --color-warning: #B45309;
+  --color-on-warning: #FFFFFF;
+  --color-warning-container: #FEF3C7;
+  --color-on-warning-container: #78350F;
+  --color-light-primary: #00288E;
+  --color-light-on-primary: #FFFFFF;
+  --color-light-primary-container: #1E40AF;
+  --color-light-on-primary-container: #A8B8FF;
+  --color-light-secondary: #525C87;
+  --color-light-on-secondary: #FFFFFF;
+  --color-light-secondary-container: #C3CCFE;
+  --color-light-on-secondary-container: #4C5680;
+  --color-light-tertiary: #611E00;
+  --color-light-on-tertiary: #FFFFFF;
+  --color-light-tertiary-container: #872D00;
+  --color-light-on-tertiary-container: #FFA583;
+  --color-light-error: #BA1A1A;
+  --color-light-on-error: #FFFFFF;
+  --color-light-error-container: #FFDAD6;
+  --color-light-on-error-container: #93000A;
+  --color-light-background: #FBF8FF;
+  --color-light-on-background: #1A1B22;
+  --color-light-surface: #FBF8FF;
+  --color-light-surface-dim: #DAD9E3;
+  --color-light-surface-bright: #FBF8FF;
+  --color-light-surface-container-lowest: #FFFFFF;
+  --color-light-surface-container-low: #F4F2FC;
+  --color-light-surface-container: #EEEDF7;
+  --color-light-surface-container-high: #E8E7F1;
+  --color-light-surface-container-highest: #E3E1EB;
+  --color-light-on-surface: #1A1B22;
+  --color-light-surface-variant: #E1E1F2;
+  --color-light-on-surface-variant: #444653;
+  --color-light-outline: #757684;
+  --color-light-outline-variant: #C4C5D5;
+  --color-light-inverse-surface: #2F3037;
+  --color-light-inverse-on-surface: #F1F0FA;
+  --color-light-inverse-primary: #B8C4FF;
+
+  --spacing-gutter-xs: 4px;
+  --spacing-gutter-sm: 8px;
+  --spacing-gutter-md: 12px;
+  --spacing-gutter-lg: 16px;
+  --spacing-gutter-xl: 24px;
+  --spacing-section: 32px;
+  --spacing-page-margin: 24px;
+
+  --font-display: "Jost", sans-serif;
+  --font-headline: "Jost", sans-serif;
+  --font-title: "Radio Canada Big", sans-serif;
+  --font-body: "Radio Canada Big", sans-serif;
+  --font-label: "Radio Canada Big", sans-serif;
+  --font-mono: "Source Code Pro", monospace;
+
+  --text-display-lg: 40px;
+  --text-display-lg--line-height: 44px;
+  --text-display-lg--letter-spacing: -0.5px;
+  --text-display-lg--font-weight: 600;
+
+  --text-headline-lg: 28px;
+  --text-headline-lg--line-height: 34px;
+  --text-headline-lg--letter-spacing: -0.25px;
+  --text-headline-lg--font-weight: 600;
+
+  --text-headline-md: 20px;
+  --text-headline-md--line-height: 26px;
+  --text-headline-md--letter-spacing: 0px;
+  --text-headline-md--font-weight: 600;
+
+  --text-title-lg: 18px;
+  --text-title-lg--line-height: 24px;
+  --text-title-lg--letter-spacing: 0px;
+  --text-title-lg--font-weight: 600;
+
+  --text-title-md: 15px;
+  --text-title-md--line-height: 20px;
+  --text-title-md--letter-spacing: 0px;
+  --text-title-md--font-weight: 600;
+
+  --text-body-lg: 15px;
+  --text-body-lg--line-height: 22px;
+  --text-body-lg--letter-spacing: 0px;
+  --text-body-lg--font-weight: 400;
+
+  --text-body-md: 13px;
+  --text-body-md--line-height: 18px;
+  --text-body-md--letter-spacing: 0px;
+  --text-body-md--font-weight: 400;
+
+  --text-label-lg: 13px;
+  --text-label-lg--line-height: 18px;
+  --text-label-lg--letter-spacing: 0.1px;
+  --text-label-lg--font-weight: 600;
+
+  --text-label-md: 12px;
+  --text-label-md--line-height: 16px;
+  --text-label-md--letter-spacing: 0.2px;
+  --text-label-md--font-weight: 500;
+
+  --text-label-sm: 11px;
+  --text-label-sm--line-height: 14px;
+  --text-label-sm--letter-spacing: 0.3px;
+  --text-label-sm--font-weight: 500;
+
+  --text-mono-md: 13px;
+  --text-mono-md--line-height: 18px;
+  --text-mono-md--letter-spacing: 0px;
+  --text-mono-md--font-weight: 500;
+
+  --text-mono-sm: 11px;
+  --text-mono-sm--line-height: 16px;
+  --text-mono-sm--letter-spacing: 0.2px;
+  --text-mono-sm--font-weight: 500;
+
+  --transition-duration-state-change: 120ms;
+  --transition-duration-surface-enter: 200ms;
+  --transition-duration-surface-exit: 150ms;
+
+  --ease-state-change: ease-out;
+  --ease-surface-enter: cubic-bezier(0.2, 0, 0, 1);
+  --ease-surface-exit: cubic-bezier(0.3, 0, 1, 1);
+}
+
+.material-symbols-outlined {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  line-height: 1 !important;
+  box-sizing: content-box;
+  overflow: hidden;
+  white-space: nowrap;
+  direction: ltr;
+  vertical-align: middle;
+}
+
+/* Drafting board subtle dot grid */
+.drafting-board-bg {
+  background-image: radial-gradient(rgba(117, 118, 132, 0.22) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Physical A4 proportions: 210mm x 297mm */
+.a4-sheet {
+  width: 210mm;
+  height: 297mm;
+  box-shadow: 0 12px 36px -8px rgba(26, 27, 34, 0.16), 0 2px 8px rgba(26, 27, 34, 0.08);
+}
+
+/* Print rules: output only the A4 sheet at exact 1:1 physical dimensions */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+  body {
+    background: #FFFFFF !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-stage {
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    display: block !important;
+    overflow: visible !important;
+  }
+  .a4-zoom-wrapper {
+    transform: none !important;
+    width: 210mm !important;
+    height: 297mm !important;
+    margin: 0 !important;
+  }
+  .a4-sheet {
+    box-shadow: none !important;
+    margin: 0 !important;
+  }
+  .sticker-slot {
+    outline: none !important;
+    background-color: transparent !important;
+  }
+  .slot-badge {
+    display: none !important;
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "LabelPress — A4 Sticker & Barcode Studio",
+  "description": "Interactive A4 sticker and price label layout studio with barcode scanner auto-fill, customizable grid presets, template styling, CSV/JSON database import, and 1:1 A4 printing.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

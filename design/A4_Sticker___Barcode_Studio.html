@@ -1,0 +1,985 @@
+<!DOCTYPE html><html lang="en"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LabelPress — A4 Sticker &amp; Barcode Studio</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script id="tailwind-config" data-stitch-original-src="5c009bd234865f85===../../tailwind.config.js">/** @type {import('tailwindcss').Config} */
+globalThis.tailwind = globalThis.tailwind || {};
+globalThis.tailwind.config = {
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        'success': '#15803D',
+        'on-success': '#FFFFFF',
+        'success-container': '#DCFCE7',
+        'on-success-container': '#14532D',
+        'warning': '#B45309',
+        'on-warning': '#FFFFFF',
+        'warning-container': '#FEF3C7',
+        'on-warning-container': '#78350F',
+        'light-primary': '#00288E',
+        'light-on-primary': '#FFFFFF',
+        'light-primary-container': '#1E40AF',
+        'light-on-primary-container': '#A8B8FF',
+        'light-secondary': '#525C87',
+        'light-on-secondary': '#FFFFFF',
+        'light-secondary-container': '#C3CCFE',
+        'light-on-secondary-container': '#4C5680',
+        'light-tertiary': '#611E00',
+        'light-on-tertiary': '#FFFFFF',
+        'light-tertiary-container': '#872D00',
+        'light-on-tertiary-container': '#FFA583',
+        'light-error': '#BA1A1A',
+        'light-on-error': '#FFFFFF',
+        'light-error-container': '#FFDAD6',
+        'light-on-error-container': '#93000A',
+        'light-background': '#FBF8FF',
+        'light-on-background': '#1A1B22',
+        'light-surface': '#FBF8FF',
+        'light-surface-dim': '#DAD9E3',
+        'light-surface-bright': '#FBF8FF',
+        'light-surface-container-lowest': '#FFFFFF',
+        'light-surface-container-low': '#F4F2FC',
+        'light-surface-container': '#EEEDF7',
+        'light-surface-container-high': '#E8E7F1',
+        'light-surface-container-highest': '#E3E1EB',
+        'light-on-surface': '#1A1B22',
+        'light-surface-variant': '#E1E1F2',
+        'light-on-surface-variant': '#444653',
+        'light-outline': '#757684',
+        'light-outline-variant': '#C4C5D5',
+        'light-inverse-surface': '#2F3037',
+        'light-inverse-on-surface': '#F1F0FA',
+        'light-inverse-primary': '#B8C4FF',
+        'dark-primary': '#B8C4FF',
+        'dark-on-primary': '#002584',
+        'dark-primary-container': '#1E40AF',
+        'dark-on-primary-container': '#A8B8FF',
+        'dark-secondary': '#BBC4F6',
+        'dark-on-secondary': '#242E56',
+        'dark-secondary-container': '#3B446E',
+        'dark-on-secondary-container': '#A9B3E3',
+        'dark-tertiary': '#FFB59A',
+        'dark-on-tertiary': '#5A1B00',
+        'dark-tertiary-container': '#872D00',
+        'dark-on-tertiary-container': '#FFA583',
+        'dark-error': '#FFB4AB',
+        'dark-on-error': '#690005',
+        'dark-error-container': '#93000A',
+        'dark-on-error-container': '#FFDAD6',
+        'dark-background': '#12131A',
+        'dark-on-background': '#E3E1EB',
+        'dark-surface': '#12131A',
+        'dark-surface-dim': '#12131A',
+        'dark-surface-bright': '#383940',
+        'dark-surface-container-lowest': '#0D0E14',
+        'dark-surface-container-low': '#1A1B22',
+        'dark-surface-container': '#1E1F26',
+        'dark-surface-container-high': '#282A31',
+        'dark-surface-container-highest': '#33343C',
+        'dark-on-surface': '#E3E1EB',
+        'dark-surface-variant': '#444653',
+        'dark-on-surface-variant': '#C4C5D5',
+        'dark-outline': '#8E909F',
+        'dark-outline-variant': '#444653',
+        'dark-inverse-surface': '#E3E1EB',
+        'dark-inverse-on-surface': '#2F3037',
+        'dark-inverse-primary': '#3755C3',
+      },
+      borderRadius: {
+        'sm': '4px',
+        'DEFAULT': '6px',
+        'md': '8px',
+        'lg': '12px',
+        'xl': '16px',
+        'full': '9999px',
+      },
+      spacing: {
+        'gutter-xs': '4px',
+        'gutter-sm': '8px',
+        'gutter-md': '12px',
+        'gutter-lg': '16px',
+        'gutter-xl': '24px',
+        'section': '32px',
+        'page-margin': '24px',
+      },
+      fontFamily: {
+        'display': ['"Jost"', 'sans-serif'],
+        'headline': ['"Jost"', 'sans-serif'],
+        'title': ['"Radio Canada Big"', 'sans-serif'],
+        'body': ['"Radio Canada Big"', 'sans-serif'],
+        'label': ['"Radio Canada Big"', 'sans-serif'],
+        'mono': ['"Source Code Pro"', 'monospace'],
+      },
+      fontSize: {
+        'display-lg': ['40px', { lineHeight: '44px', letterSpacing: '-0.5px', fontWeight: '600' }],
+        'display-lg-mobile': ['30px', { lineHeight: '36px', letterSpacing: '-0.25px', fontWeight: '600' }],
+        'headline-lg': ['28px', { lineHeight: '34px', letterSpacing: '-0.25px', fontWeight: '600' }],
+        'headline-md': ['20px', { lineHeight: '26px', letterSpacing: '0px', fontWeight: '600' }],
+        'title-lg': ['18px', { lineHeight: '24px', letterSpacing: '0px', fontWeight: '600' }],
+        'title-md': ['15px', { lineHeight: '20px', letterSpacing: '0px', fontWeight: '600' }],
+        'body-lg': ['15px', { lineHeight: '22px', letterSpacing: '0px', fontWeight: '400' }],
+        'body-md': ['13px', { lineHeight: '18px', letterSpacing: '0px', fontWeight: '400' }],
+        'label-lg': ['13px', { lineHeight: '18px', letterSpacing: '0.1px', fontWeight: '600' }],
+        'label-md': ['12px', { lineHeight: '16px', letterSpacing: '0.2px', fontWeight: '500' }],
+        'label-sm': ['11px', { lineHeight: '14px', letterSpacing: '0.3px', fontWeight: '500' }],
+        'mono-md': ['13px', { lineHeight: '18px', letterSpacing: '0px', fontWeight: '500' }],
+        'mono-sm': ['11px', { lineHeight: '16px', letterSpacing: '0.2px', fontWeight: '500' }],
+      },
+      transitionDuration: {
+        'state-change': '120ms',
+        'surface-enter': '200ms',
+        'surface-exit': '150ms',
+      },
+      transitionDelay: {
+        'state-change': '0ms',
+        'surface-enter': '0ms',
+        'surface-exit': '0ms',
+      },
+      transitionTimingFunction: {
+        'state-change': 'ease-out',
+        'surface-enter': 'cubic-bezier(0.2, 0, 0, 1)',
+        'surface-exit': 'cubic-bezier(0.3, 0, 1, 1)',
+      },
+    },
+  },
+};
+if (typeof module !== 'undefined') module.exports = globalThis.tailwind.config;
+</script>
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&amp;family=Radio+Canada+Big:wght@400;500;600;700&amp;family=Source+Code+Pro:wght@400;500;600&amp;display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=block" rel="stylesheet">
+  <style>
+    .material-symbols-outlined, .material-symbols-rounded, .material-symbols-sharp, .material-icons {
+      display: inline-block;
+      width: 1em;
+      height: 1em;
+      line-height: 1 !important;
+      box-sizing: content-box;
+      overflow: hidden;
+      white-space: nowrap;
+      direction: ltr;
+      vertical-align: middle;
+    }
+
+    /* Drafting board subtle dot grid */
+    .drafting-board-bg {
+      background-image: radial-gradient(rgba(117, 118, 132, 0.22) 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+
+    /* Physical A4 proportions: 210mm x 297mm */
+    .a4-sheet {
+      width: 210mm;
+      height: 297mm;
+      box-shadow: 0 12px 36px -8px rgba(26, 27, 34, 0.16), 0 2px 8px rgba(26, 27, 34, 0.08);
+    }
+
+    /* Print rules: output only the A4 sheet at exact 1:1 physical dimensions */
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 0;
+      }
+      body {
+        background: #FFFFFF !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .print-stage {
+        padding: 0 !important;
+        margin: 0 !important;
+        background: transparent !important;
+        display: block !important;
+        overflow: visible !important;
+      }
+      .a4-zoom-wrapper {
+        transform: none !important;
+        width: 210mm !important;
+        height: 297mm !important;
+        margin: 0 !important;
+      }
+      .a4-sheet {
+        box-shadow: none !important;
+        margin: 0 !important;
+      }
+      .sticker-slot {
+        outline: none !important;
+        background-color: transparent !important;
+      }
+      .slot-badge {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-light-surface text-light-on-surface font-body antialiased">
+  <div class="min-h-screen flex flex-col">
+
+    <!-- Top Studio Toolbar -->
+    <header class="no-print sticky top-0 z-30 bg-light-surface-container-lowest border-b border-light-outline-variant px-gutter-lg py-gutter-sm flex flex-wrap items-center justify-between gap-gutter-md">
+      <div class="flex items-center gap-gutter-md">
+        <div class="flex items-center gap-gutter-sm">
+          <div class="w-8 h-8 rounded bg-light-primary text-light-on-primary flex items-center justify-center">
+            <span class="material-symbols-outlined text-title-lg" aria-hidden="true">qr_code_scanner</span>
+          </div>
+          <div>
+            <h1 class="font-headline text-title-lg text-light-on-surface leading-none" data-design-text-token="title-lg">LabelPress</h1>
+            <p class="font-mono text-mono-sm text-light-on-surface-variant mt-0.5" data-design-text-token="mono-sm">A4 · 210×297 mm</p>
+          </div>
+        </div>
+
+        <div class="hidden sm:flex items-center gap-gutter-sm pl-gutter-md border-l border-light-outline-variant">
+          <span id="db-status-pill" class="inline-flex items-center gap-1.5 px-gutter-sm py-1 rounded-full bg-success-container text-on-success-container font-body text-label-md" data-design-text-token="label-md">
+            <span class="material-symbols-outlined text-body-md" aria-hidden="true">check_circle</span>
+            <span id="db-status-text">Catalog: 18 items</span>
+          </span>
+          <span id="filled-count-pill" class="inline-flex items-center px-gutter-sm py-1 rounded-full bg-light-surface-container text-light-on-surface-variant font-mono text-mono-sm tabular-nums" data-design-text-token="mono-sm">
+            10 / 10 filled
+          </span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-gutter-sm">
+        <!-- Zoom Controls -->
+        <div class="hidden md:flex items-center rounded bg-light-surface-container border border-light-outline-variant p-0.5">
+          <button type="button" onclick="setZoom(0.65)" id="zoom-65" class="px-gutter-sm py-1 rounded-sm font-mono text-mono-sm text-light-on-surface-variant hover:text-light-on-surface transition-colors duration-state-change" data-design-text-token="mono-sm">65%</button>
+          <button type="button" onclick="setZoom(0.82)" id="zoom-82" class="px-gutter-sm py-1 rounded-sm font-mono text-mono-sm bg-light-surface-container-lowest text-light-primary shadow-sm transition-colors duration-state-change" data-design-text-token="mono-sm">Fit</button>
+          <button type="button" onclick="setZoom(1)" id="zoom-100" class="px-gutter-sm py-1 rounded-sm font-mono text-mono-sm text-light-on-surface-variant hover:text-light-on-surface transition-colors duration-state-change" data-design-text-token="mono-sm">100%</button>
+        </div>
+
+        <!-- Secondary: Clear Sheet -->
+        <button data-component-id="button-secondary" data-component-type="button" data-component-variant="secondary" type="button" onclick="clearAllSlots()" class="inline-flex items-center justify-center gap-gutter-xs px-gutter-md py-gutter-sm rounded bg-light-surface-container-lowest text-light-on-surface border border-light-outline-variant hover:bg-light-surface-container-low focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-light-primary transition-colors duration-state-change">
+          <span class="material-symbols-outlined text-title-md text-light-on-surface-variant" aria-hidden="true">layers_clear</span>
+          <span class="font-body text-label-lg" data-design-text-token="label-lg">Clear Sheet</span>
+        </button>
+
+        <!-- Primary: Print A4 Sheet -->
+        <button data-component-id="button-with-icon" data-component-type="button" data-component-variant="with-icon" type="button" onclick="window.print()" class="inline-flex items-center justify-center gap-gutter-sm px-gutter-lg py-gutter-sm rounded bg-light-primary text-light-on-primary hover:bg-light-primary-container focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-light-primary transition-colors duration-state-change">
+          <span class="material-symbols-outlined text-title-md" aria-hidden="true">print</span>
+          <span class="font-body text-label-lg" data-design-text-token="label-lg">Print A4 Sheet</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Studio Workspace -->
+    <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 items-stretch">
+
+      <!-- Left Inspector Rail -->
+      <aside class="no-print lg:col-span-4 xl:col-span-3 bg-light-surface-container-low border-b lg:border-b-0 lg:border-r border-light-outline-variant p-gutter-lg flex flex-col gap-gutter-lg">
+
+        <!-- Inspector Tabs -->
+        <div data-component-id="tabs-horizontal" data-component-type="tabs" data-component-variant="horizontal" class="flex flex-col gap-gutter-lg">
+          <div role="tablist" aria-label="Studio controls" class="grid grid-cols-4 gap-gutter-xs p-gutter-xs rounded-md bg-light-surface-container border border-light-outline-variant">
+            <button role="tab" id="tab-scan" aria-selected="true" aria-controls="panel-scan" tabindex="0" onclick="switchTab(&#39;scan&#39;)" class="px-gutter-xs py-1.5 rounded-sm bg-light-surface-container-lowest text-light-primary shadow-sm transition-colors duration-state-change">
+              <span class="font-body text-label-md" data-design-text-token="label-md">Scan</span>
+            </button>
+            <button role="tab" id="tab-grid" aria-selected="false" aria-controls="panel-grid" tabindex="-1" onclick="switchTab(&#39;grid&#39;)" class="px-gutter-xs py-1.5 rounded-sm text-light-on-surface-variant hover:text-light-on-surface transition-colors duration-state-change">
+              <span class="font-body text-label-md" data-design-text-token="label-md">Grid</span>
+            </button>
+            <button role="tab" id="tab-template" aria-selected="false" aria-controls="panel-template" tabindex="-1" onclick="switchTab(&#39;template&#39;)" class="px-gutter-xs py-1.5 rounded-sm text-light-on-surface-variant hover:text-light-on-surface transition-colors duration-state-change">
+              <span class="font-body text-label-md" data-design-text-token="label-md">Design</span>
+            </button>
+            <button role="tab" id="tab-data" aria-selected="false" aria-controls="panel-data" tabindex="-1" onclick="switchTab(&#39;data&#39;)" class="px-gutter-xs py-1.5 rounded-sm text-light-on-surface-variant hover:text-light-on-surface transition-colors duration-state-change">
+              <span class="font-body text-label-md" data-design-text-token="label-md">Data</span>
+            </button>
+          </div>
+
+          <!-- TAB 1: SCAN & FILL -->
+          <div role="tabpanel" id="panel-scan" aria-labelledby="tab-scan" class="flex flex-col gap-gutter-lg">
+
+            <!-- Barcode Scanner Card -->
+            <article data-component-id="card-elevated" data-component-type="card" data-component-variant="elevated" class="rounded-md bg-light-surface-container-lowest border border-light-outline-variant p-gutter-lg shadow-sm flex flex-col gap-gutter-md">
+              <header class="flex items-center justify-between">
+                <div class="flex items-center gap-gutter-xs">
+                  <span class="material-symbols-outlined text-title-md text-light-primary" aria-hidden="true">barcode_scanner</span>
+                  <h2 class="font-body text-title-md text-light-on-surface" data-design-text-token="title-md">USB / BT Scanner</h2>
+                </div>
+                <span id="active-slot-pill" class="font-mono text-mono-sm bg-light-secondary-container text-light-on-secondary-container px-gutter-sm py-0.5 rounded-full" data-design-text-token="mono-sm">Slot #1</span>
+              </header>
+
+              <div class="relative">
+                <label data-component-id="input-field-icon" data-component-type="input-field" data-component-variant="with-icon" class="flex flex-col gap-gutter-xs">
+                  <span class="font-body text-label-md text-light-on-surface-variant" data-design-text-token="label-md">Scan barcode or search SKU</span>
+                  <div class="relative flex items-center">
+                    <span class="material-symbols-outlined text-title-lg text-light-primary absolute left-3 pointer-events-none" aria-hidden="true">barcode</span>
+                    <input id="scanner-input" type="text" autocomplete="off" placeholder="Scan SKU101203 or type name..." class="w-full rounded bg-light-surface-container-lowest border border-light-outline-variant pl-10 pr-gutter-md py-gutter-sm font-mono text-mono-md text-light-on-surface placeholder:text-light-outline focus:border-light-primary focus:ring-1 focus:ring-light-primary focus:outline-none transition-colors duration-state-change">
+                  </div>
+                </label>
+
+                <!-- Autocomplete Dropdown -->
+                <div id="autocomplete-list" class="hidden absolute left-0 right-0 top-full mt-1 z-20 max-h-56 overflow-y-auto rounded-md bg-light-surface-container-lowest border border-light-outline-variant shadow-md divide-y divide-light-outline-variant"></div>
+              </div>
+
+              <div id="scan-feedback" class="hidden rounded px-gutter-sm py-gutter-xs font-body text-label-md flex items-center gap-gutter-xs"></div>
+
+              <label class="flex items-center justify-between pt-gutter-xs border-t border-light-outline-variant cursor-pointer">
+                <span class="font-body text-body-md text-light-on-surface-variant" data-design-text-token="body-md">Auto-advance to next slot</span>
+                <input id="auto-advance-toggle" type="checkbox" checked class="rounded border-light-outline-variant text-light-primary focus:ring-light-primary">
+              </label>
+            </article>
+
+            <!-- Active Slot Manual Editor -->
+            <article data-component-id="card-outlined" data-component-type="card" data-component-variant="outlined" class="rounded-md bg-light-surface-container-lowest border border-light-outline-variant p-gutter-lg flex flex-col gap-gutter-md">
+              <header class="flex items-center justify-between gap-gutter-sm">
+                <h2 class="font-body text-title-md text-light-on-surface" data-design-text-token="title-md">Edit Sticker</h2>
+                <div class="flex items-center gap-gutter-xs shrink-0">
+                  <button type="button" onclick="duplicateActiveToAll()" title="Fill all slots with this sticker" class="inline-flex items-center gap-1 px-gutter-sm py-1 rounded bg-light-surface-container text-light-on-surface-variant hover:text-light-on-surface font-body text-label-sm whitespace-nowrap transition-colors duration-state-change">
+                    <span class="material-symbols-outlined text-body-md" aria-hidden="true">content_copy</span>
+                    <span data-design-text-token="label-sm">Fill All</span>
+                  </button>
+                  <button type="button" onclick="clearActiveSlot()" title="Clear this slot" class="inline-flex items-center justify-center w-7 h-7 rounded bg-light-surface-container text-light-on-surface-variant hover:text-light-error transition-colors duration-state-change" aria-label="Clear selected slot">
+                    <span class="material-symbols-outlined text-body-md" aria-hidden="true">delete</span>
+                  </button>
+                </div>
+              </header>
+
+              <label class="flex flex-col gap-gutter-xs">
+                <span class="font-body text-label-md text-light-on-surface-variant" data-design-text-token="label-md">Price</span>
+                <input id="slot-price-input" type="text" oninput="updateActiveSlotField(&#39;price&#39;, this.value)" class="w-full rounded bg-light-surface-container-lowest border border-light-outline-variant px-gutter-md py-gutter-sm font-body text-body-md text-light-on-surface tabular-nums focus:border-light-primary focus:ring-1 focus:ring-light-primary focus:outline-none">
+              </label>
+
+              <label class="flex flex-col gap-gutter-xs">
+                <span class="font-body text-label-md text-light-on-surface-variant" data-design-text-token="label-md">Description</span>
+                <input id="slot-desc-input" type="text" oninput="updateActiveSlotField(&#39;description&#39;, this.value)" class="w-full rounded bg-light-surface-container-lowest border border-light-outline-variant px-gutter-md py-gutter-sm font-body text-body-md text-light-on-surface focus:border-light-primary focus:ring-1 focus:ring-light-primary focus:outline-none">
+              </label>
+
+              <label class="flex flex-col gap-gutter-xs">
+                <span class="font-body text-label-md text-light-on-surface-variant" data-design-text-token="label-md">SKU / Code</span>
+                <input id="slot-sku-input" type="text" oninput="updateActiveSlotField(&#39;sku&#39;, this.value)" class="w-full rounded bg-light-surface-container-lowest border border-light-outline-variant px-gutter-md py-gutter-sm font-mono text-mono-md text-light-on-surface focus:border-light-primary focus:ring-1 focus:ring-light-primary focus:outline-none">
+              </label>
+            </article>
+          </div>
+
+          <!-- TAB 2: A4 GRID & MARGINS -->
+          <div role="tabpanel" id="panel-grid" aria-labelledby="tab-grid" class="hidden flex flex-col gap-gutter-lg">
+            <article class="rounded-md bg-light-surface-container-lowest border border-light-outline-variant p-gutter-lg flex flex-col gap-gutter-md">
+              <header class="flex items-center justify-between">
+                <h2 class="font-body text-title-md text-light-on-surface" data-design-text-token="title-md">Grid Presets</h2>
+                <span id="sticker-size-readout" class="font-mono text-mono-sm text-light-primary tabular-nums" data-design-text-token="mono-sm">88.0 × 52.6 mm</span>
+              </header>
+
+              <div class="grid grid-cols-2 gap-gutter-sm">
+                <button type="button" onclick="applyGridPreset(2, 5)" class="px-gutter-sm py-gutter-sm rounded border border-light-outline-variant bg-light-surface-container-low hover:bg-light-surface-container font-body text-label-md text-light-on-surface transition-colors duration-state-change">2 × 5 (10 labels)</button>
+                <button type="button" onclick="applyGridPreset(2, 4)" class="px-gutter-sm py-gutter-sm rounded border border-light-outline-variant bg-light-surface-container-low hover:bg-light-surface-container font-body text-label-md text-light-on-surface transition-colors duration-state-change">2 × 4 (8 labels)</button>
+                <button type="button" onclick="applyGridPreset(3, 5)" class="px-gutter-sm py-gutter-sm rounded border border-light-outline-variant bg-light-surface-container-low hover:bg-light-surface-container font-body text-label-md text-light-on-surface transition-colors duration-state-change">3 × 5 (15 labels)</button>
+                <button type="button" onclick="applyGridPreset(3, 7)" class="px-gutter-sm py-gutter-sm rounded border border-light-outline-variant bg-light-surface-container-low hover:bg-light-surface-container font-body text-label-md text-light-on-surface transition-colors duration-state-change">3 × 7 (21 labels)</button>
+              </div>
+
+              <div class="grid grid-cols-2 gap-gutter-md pt-gutter-sm border-t border-light-outline-variant">
+                <label class="flex flex-col gap-gutter-xs">
+                  <span class="font-body text-label-md text-light-on-surface-variant" data-design-text-token="label-md">Columns</span>
+                  <input id="grid-cols-input" type="number" min="1" max="6" value="2" oninput="updateGridConfig()" class="w-full rounded bg-light-surface-container-lowest border border-light-outline-variant px-gutter-md py-gutter-xs font-mono text-mono-md tabular-nums">
+                </label>
+                <label class="flex flex-col gap-gutter-xs">
+                  <span class="font-body text-label-md text-light-on-surface-variant" data-design-text-token="label-md">Rows</span>
+                  <input id="grid-rows-input" type="number" min="1" max="12" value="5" oninput="updateGridConfig()" class="w-full rounded bg-light-surface-container-lowest border border-light-outline-variant px-gutter-md py-gutter-xs font-mono text-mono-md tabular-nums">
+                </label>
+              </div>
+            </article>
+
+            <article class="rounded-md bg-light-surface-container-lowest border border-light-outline-variant p-gutter-lg flex flex-col gap-gutter-md">
+              <h2 class="font-body text-title-md text-light-on-surface" data-design-text-token="title-md">A4 Margins &amp; Gaps (mm)</h2>
+              <div class="grid grid-cols-2 gap-gutter-md">
+                <label class="flex flex-col gap-gutter-xs">
+                  <span class="font-body text-label-md text-light-on-surface-variant" data-design-text-token="label-md">Top / Bottom</span>
+                  <input id="margin-y-input" type="number" min="0" max="40" step="1" value="10" oninput="updateGridConfig()" class="w-full rounded bg-light-surface-container-lowest border border-light-outline-variant px-gutter-md py-gutter-xs font-mono text-mono-md tabular-nums">
+                </label>
+                <label class="flex flex-col gap-gutter-xs">
+                  <span class="font-body text-label-md text-light-on-surface-variant" data-design-text-token="label-md">Left / Right</span>
+                  <input id="margin-x-input" type="number" min="0" max="40" step="1" value="14" oninput="updateGridConfig()" class="w-full rounded bg-light-surface-container-lowest border border-light-outline-variant px-gutter-md py-gutter-xs font-mono text-mono-md tabular-nums">
+                </label>
+                <label class="flex flex-col gap-gutter-xs">
+                  <span class="font-body text-label-md text-light-on-surface-variant" data-design-text-token="label-md">Column Gap</span>
+                  <input id="gap-x-input" type="number" min="0" max="30" step="1" value="6" oninput="updateGridConfig()" class="w-full rounded bg-light-surface-container-lowest border border-light-outline-variant px-gutter-md py-gutter-xs font-mono text-mono-md tabular-nums">
+                </label>
+                <label class="flex flex-col gap-gutter-xs">
+                  <span class="font-body text-label-md text-light-on-surface-variant" data-design-text-token="label-md">Row Gap</span>
+                  <input id="gap-y-input" type="number" min="0" max="30" step="1" value="4" oninput="updateGridConfig()" class="w-full rounded bg-light-surface-container-lowest border border-light-outline-variant px-gutter-md py-gutter-xs font-mono text-mono-md tabular-nums">
+                </label>
+              </div>
+            </article>
+          </div>
+
+          <!-- TAB 3: TEMPLATE DESIGN (LOGO, BORDER, TYPOGRAPHY) -->
+          <div role="tabpanel" id="panel-template" aria-labelledby="tab-template" class="hidden flex flex-col gap-gutter-lg">
+            <article class="rounded-md bg-light-surface-container-lowest border border-light-outline-variant p-gutter-lg flex flex-col gap-gutter-md">
+              <h2 class="font-body text-title-md text-light-on-surface" data-design-text-token="title-md">Brand Header &amp; Logo</h2>
+              <label class="flex flex-col gap-gutter-xs">
+                <span class="font-body text-label-md text-light-on-surface-variant" data-design-text-token="label-md">Brand Text</span>
+                <input id="brand-text-input" type="text" value="GLOWUP" oninput="updateTemplateStyle()" class="w-full rounded bg-light-surface-container-lowest border border-light-outline-variant px-gutter-md py-gutter-xs font-headline text-body-md">
+              </label>
+
+              <div class="flex flex-col gap-gutter-xs">
+                <span class="font-body text-label-md text-light-on-surface-variant" data-design-text-token="label-md">Custom Logo Image (optional)</span>
+                <div class="flex items-center gap-gutter-sm">
+                  <label class="flex-1 cursor-pointer inline-flex items-center justify-center gap-gutter-xs px-gutter-md py-gutter-xs rounded border border-light-outline-variant bg-light-surface-container-low hover:bg-light-surface-container font-body text-label-md text-light-on-surface">
+                    <span class="material-symbols-outlined text-title-md" aria-hidden="true">upload_file</span>
+                    <span>Upload Logo</span>
+                    <input id="logo-file-input" type="file" accept="image/*" class="hidden" onchange="handleLogoUpload(event)">
+                  </label>
+                  <button type="button" onclick="clearCustomLogo()" class="px-gutter-sm py-gutter-xs rounded border border-light-outline-variant text-light-on-surface-variant hover:text-light-on-surface font-body text-label-md">Reset</button>
+                </div>
+              </div>
+
+              <label class="flex items-center justify-between pt-gutter-xs border-t border-light-outline-variant cursor-pointer">
+                <span class="font-body text-body-md text-light-on-surface-variant" data-design-text-token="body-md">Show brand header</span>
+                <input id="show-brand-toggle" type="checkbox" checked onchange="updateTemplateStyle()" class="rounded border-light-outline-variant text-light-primary focus:ring-light-primary">
+              </label>
+            </article>
+
+            <article class="rounded-md bg-light-surface-container-lowest border border-light-outline-variant p-gutter-lg flex flex-col gap-gutter-md">
+              <h2 class="font-body text-title-md text-light-on-surface" data-design-text-token="title-md">Border &amp; Scale</h2>
+              <label class="flex flex-col gap-gutter-xs">
+                <span class="font-body text-label-md text-light-on-surface-variant" data-design-text-token="label-md">Sticker Frame Style</span>
+                <select id="border-style-select" onchange="updateTemplateStyle()" class="w-full rounded bg-light-surface-container-lowest border border-light-outline-variant px-gutter-md py-gutter-xs font-body text-body-md">
+                  <option value="notched-double">Ornate Notched Double</option>
+                  <option value="simple-double">Classic Double Line</option>
+                  <option value="rounded-single">Rounded Hairline</option>
+                  <option value="none">Borderless (Pre-cut paper)</option>
+                </select>
+              </label>
+
+              <label class="flex flex-col gap-gutter-xs">
+                <div class="flex items-center justify-between">
+                  <span class="font-body text-label-md text-light-on-surface-variant" data-design-text-token="label-md">Price Font Scale</span>
+                  <span id="price-scale-val" class="font-mono text-mono-sm text-light-on-surface">100%</span>
+                </div>
+                <input id="price-scale-input" type="range" min="70" max="135" value="100" oninput="updateTemplateStyle()" class="w-full accent-light-primary">
+              </label>
+            </article>
+          </div>
+
+          <!-- TAB 4: CSV / JSON DATABASE & FIELD MAPPING -->
+          <div role="tabpanel" id="panel-data" aria-labelledby="tab-data" class="hidden flex flex-col gap-gutter-lg">
+            <article class="rounded-md bg-light-surface-container-lowest border border-light-outline-variant p-gutter-lg flex flex-col gap-gutter-md">
+              <header class="flex items-center justify-between">
+                <h2 class="font-body text-title-md text-light-on-surface" data-design-text-token="title-md">Product Database</h2>
+                <span id="db-filename-badge" class="font-mono text-mono-sm text-light-outline" data-design-text-token="mono-sm">sample_glowup.json</span>
+              </header>
+
+              <label class="cursor-pointer rounded-md border border-dashed border-light-outline bg-light-surface-container-low hover:bg-light-surface-container p-gutter-md flex flex-col items-center gap-gutter-xs text-center transition-colors duration-state-change">
+                <span class="material-symbols-outlined text-headline-md text-light-primary" aria-hidden="true">upload_file</span>
+                <span class="font-body text-label-lg text-light-on-surface" data-design-text-token="label-lg">Import CSV or JSON</span>
+                <span class="font-body text-label-sm text-light-outline" data-design-text-token="label-sm">Supports headered CSV or JSON arrays</span>
+                <input id="db-file-input" type="file" accept=".csv,.json,text/csv,application/json" class="hidden" onchange="handleDatabaseUpload(event)">
+              </label>
+            </article>
+
+            <article class="rounded-md bg-light-surface-container-lowest border border-light-outline-variant p-gutter-lg flex flex-col gap-gutter-md">
+              <h2 class="font-body text-title-md text-light-on-surface" data-design-text-token="title-md">Field Mapping</h2>
+              <label class="flex flex-col gap-gutter-xs">
+                <span class="font-body text-label-md text-light-on-surface-variant" data-design-text-token="label-md">Barcode / Lookup Column</span>
+                <select id="map-lookup" onchange="updateFieldMapping()" class="w-full rounded bg-light-surface-container-lowest border border-light-outline-variant px-gutter-md py-gutter-xs font-mono text-mono-md"></select>
+              </label>
+              <label class="flex flex-col gap-gutter-xs">
+                <span class="font-body text-label-md text-light-on-surface-variant" data-design-text-token="label-md">Price Column</span>
+                <select id="map-price" onchange="updateFieldMapping()" class="w-full rounded bg-light-surface-container-lowest border border-light-outline-variant px-gutter-md py-gutter-xs font-mono text-mono-md"></select>
+              </label>
+              <label class="flex flex-col gap-gutter-xs">
+                <span class="font-body text-label-md text-light-on-surface-variant" data-design-text-token="label-md">Description Column</span>
+                <select id="map-desc" onchange="updateFieldMapping()" class="w-full rounded bg-light-surface-container-lowest border border-light-outline-variant px-gutter-md py-gutter-xs font-mono text-mono-md"></select>
+              </label>
+              <label class="flex flex-col gap-gutter-xs">
+                <span class="font-body text-label-md text-light-on-surface-variant" data-design-text-token="label-md">Display SKU Column</span>
+                <select id="map-sku" onchange="updateFieldMapping()" class="w-full rounded bg-light-surface-container-lowest border border-light-outline-variant px-gutter-md py-gutter-xs font-mono text-mono-md"></select>
+              </label>
+            </article>
+
+            <article class="rounded-md bg-light-surface-container-lowest border border-light-outline-variant p-gutter-md flex flex-col gap-gutter-sm">
+              <div class="flex items-center justify-between">
+                <h3 class="font-body text-label-lg text-light-on-surface" data-design-text-token="label-lg">Catalog Preview</h3>
+                <span class="font-body text-label-sm text-light-outline">Click row to fill slot</span>
+              </div>
+              <div id="catalog-preview-list" class="max-h-48 overflow-y-auto divide-y divide-light-outline-variant"></div>
+            </article>
+          </div>
+
+        </div>
+      </aside>
+
+      <!-- Right Drafting Board & Live A4 Sheet -->
+      <section class="print-stage lg:col-span-8 xl:col-span-9 bg-light-surface-container-high drafting-board-bg p-gutter-xl overflow-auto flex flex-col items-center justify-start">
+        <div class="a4-zoom-wrapper origin-top transition-transform duration-state-change" id="a4-zoom-wrapper" style="transform: scale(0.82);">
+          <div id="a4-sheet" class="a4-sheet bg-light-surface-container-lowest text-light-on-surface box-border">
+            <div id="sticker-grid" class="w-full h-full grid"></div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script>
+    // Sample catalog matching the user's GLOWUP A4 sheet + extra scannable barcodes
+    const DEFAULT_CATALOG = [
+      { barcode: "7701012030014", sku: "SKU101203", price: "$52.900", description: "SET DE ESFERAS Y ADORNOS X31 BLUE" },
+      { barcode: "7700999000021", sku: "K0999B", price: "$16.000", description: "SET X6 BOLAS PERLADAS BLANCAS 8CM" },
+      { barcode: "7701009000038", sku: "SKU100900", price: "$33.900", description: "SET DE ESFERAS X44 ROMANTIC" },
+      { barcode: "7700998000045", sku: "K0998B", price: "$6.000", description: "SET X6 BOLAS PERLADAS 6CM" },
+      { barcode: "7701012130052", sku: "SKU101213", price: "$23.500", description: "SET DE ESFERAS X9 COPPER" },
+      { barcode: "7700570000069", sku: "K0570", price: "$53.900", description: "CASACNUECES 30CM MADERA" },
+      { barcode: "7700996000076", sku: "K0996B", price: "$8.500", description: "SET X12 BOLAS PERLADAS 4CM" },
+      { barcode: "7701643000083", sku: "K1643P", price: "$14.200", description: "SET BOLAS X3 BLANCAS/PLATA 10CM" },
+      { barcode: "7700997000090", sku: "K0997B", price: "$9.900", description: "SET X12 BOLAS PERLADAS 5CM" },
+      { barcode: "7701642000106", sku: "K1642P", price: "$17.900", description: "SET 6BOLAS BLANCAS/PLATEADO 8CM" },
+      { barcode: "7701015000113", sku: "SKU101501", price: "$28.900", description: "GUIRNALDA LUCES LED CALIDA 10M" },
+      { barcode: "7701015000120", sku: "SKU101502", price: "$42.000", description: "CORONA NAVIDAD NEVADA 45CM" },
+      { barcode: "7700881000137", sku: "K0881G", price: "$12.500", description: "ESTRELLA PUNTA ARBOL DORADA" },
+      { barcode: "7700882000144", sku: "K0882R", price: "$19.900", description: "SET X4 CINTAS TERCIOPELO ROJO" },
+      { barcode: "7701020000151", sku: "SKU102010", price: "$64.500", description: "ARBOL PINO NEVADO 120CM" },
+      { barcode: "7700412000168", sku: "K0412S", price: "$11.200", description: "VELA AROMATICA CANELA 200G" },
+      { barcode: "7700413000175", sku: "K0413M", price: "$15.800", description: "PORTAVELA CRISTAL TALLADO" },
+      { barcode: "7701033000182", sku: "SKU103304", price: "$21.000", description: "CAMINO DE MESA LINO DORADO" }
+    ];
+
+    const state = {
+      catalog: [...DEFAULT_CATALOG],
+      columns: ["barcode", "sku", "price", "description"],
+      mapping: { lookup: "sku", price: "price", description: "description", sku: "sku" },
+      grid: { cols: 2, rows: 5, marginY: 10, marginX: 14, gapX: 6, gapY: 4 },
+      template: { brand: "GLOWUP", logoUrl: null, showBrand: true, borderStyle: "notched-double", priceScale: 100 },
+      slots: DEFAULT_CATALOG.slice(0, 10).map(item => ({
+        price: item.price,
+        description: item.description,
+        sku: item.sku
+      })),
+      activeSlot: 0
+    };
+
+    function switchTab(tabId) {
+      const tabs = ["scan", "grid", "template", "data"];
+      tabs.forEach(t => {
+        const btn = document.getElementById("tab-" + t);
+        const panel = document.getElementById("panel-" + t);
+        const active = t === tabId;
+        btn.setAttribute("aria-selected", active ? "true" : "false");
+        btn.setAttribute("tabindex", active ? "0" : "-1");
+        if (active) {
+          btn.classList.add("bg-light-surface-container-lowest", "text-light-primary", "shadow-sm");
+          btn.classList.remove("text-light-on-surface-variant");
+          panel.classList.remove("hidden");
+        } else {
+          btn.classList.remove("bg-light-surface-container-lowest", "text-light-primary", "shadow-sm");
+          btn.classList.add("text-light-on-surface-variant");
+          panel.classList.add("hidden");
+        }
+      });
+    }
+
+    function setZoom(scale) {
+      const wrapper = document.getElementById("a4-zoom-wrapper");
+      wrapper.style.transform = `scale(${scale})`;
+      ["65", "82", "100"].forEach(k => {
+        const el = document.getElementById("zoom-" + k);
+        const isCurrent = (k === "65" && scale === 0.65) || (k === "82" && scale === 0.82) || (k === "100" && scale === 1);
+        if (isCurrent) {
+          el.classList.add("bg-light-surface-container-lowest", "text-light-primary", "shadow-sm");
+          el.classList.remove("text-light-on-surface-variant");
+        } else {
+          el.classList.remove("bg-light-surface-container-lowest", "text-light-primary", "shadow-sm");
+          el.classList.add("text-light-on-surface-variant");
+        }
+      });
+    }
+
+    function getBorderSvg(style) {
+      if (style === "none") return "";
+      if (style === "simple-double") {
+        return `<svg class="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 200 120" preserveAspectRatio="none" aria-hidden="true">
+          <rect x="2" y="2" width="196" height="116" fill="none" stroke="#1A1B22" stroke-width="1.6"/>
+          <rect x="6" y="6" width="188" height="108" fill="none" stroke="#1A1B22" stroke-width="0.9"/>
+        </svg>`;
+      }
+      if (style === "rounded-single") {
+        return `<svg class="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 200 120" preserveAspectRatio="none" aria-hidden="true">
+          <rect x="2" y="2" width="196" height="116" rx="10" ry="10" fill="none" stroke="#1A1B22" stroke-width="1.5"/>
+        </svg>`;
+      }
+      // Ornate Notched Double (matching user screenshot)
+      return `<svg class="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 200 120" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M 14,2 L 186,2 A 12,12 0 0 0 198,14 L 198,106 A 12,12 0 0 0 186,118 L 14,118 A 12,12 0 0 0 2,106 L 2,14 A 12,12 0 0 0 14,2 Z" fill="none" stroke="#1A1B22" stroke-width="1.6"/>
+        <path d="M 17,6 L 183,6 A 10,10 0 0 0 194,17 L 194,103 A 10,10 0 0 0 183,114 L 17,114 A 10,10 0 0 0 6,103 L 6,17 A 10,10 0 0 0 17,6 Z" fill="none" stroke="#1A1B22" stroke-width="0.85"/>
+      </svg>`;
+    }
+
+    function renderSheet() {
+      const sheet = document.getElementById("a4-sheet");
+      const grid = document.getElementById("sticker-grid");
+      const { cols, rows, marginY, marginX, gapX, gapY } = state.grid;
+      const totalSlots = cols * rows;
+
+      while (state.slots.length < totalSlots) {
+        state.slots.push({ price: "", description: "", sku: "" });
+      }
+      if (state.activeSlot >= totalSlots) state.activeSlot = totalSlots - 1;
+
+      sheet.style.padding = `${marginY}mm ${marginX}mm`;
+      grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+      grid.style.gridTemplateRows = `repeat(${rows}, minmax(0, 1fr))`;
+      grid.style.columnGap = `${gapX}mm`;
+      grid.style.rowGap = `${gapY}mm`;
+
+      // Physical size calculation
+      const wMm = ((210 - marginX * 2 - gapX * (cols - 1)) / cols).toFixed(1);
+      const hMm = ((297 - marginY * 2 - gapY * (rows - 1)) / rows).toFixed(1);
+      document.getElementById("sticker-size-readout").textContent = `${wMm} × ${hMm} mm`;
+
+      // Dynamic font scale based on row/col density
+      const densityScale = Math.min(1, 5 / Math.max(rows, 3)) * Math.min(1, 2 / Math.max(cols, 2));
+      const pricePx = Math.round(32 * densityScale * (state.template.priceScale / 100));
+      const brandPx = Math.max(11, Math.round(20 * densityScale));
+      const descPx = Math.max(7, Math.round(9.5 * densityScale));
+      const skuPx = Math.max(7, Math.round(9.5 * densityScale));
+
+      let filledCount = 0;
+      grid.innerHTML = "";
+
+      for (let i = 0; i < totalSlots; i++) {
+        const slot = state.slots[i];
+        const isFilled = Boolean(slot.price || slot.description || slot.sku);
+        if (isFilled) filledCount++;
+        const isActive = i === state.activeSlot;
+
+        const cell = document.createElement("div");
+        cell.className = `sticker-slot relative flex flex-col items-center justify-center text-center cursor-pointer select-none transition-colors duration-state-change ${
+          isActive ? "outline outline-2 outline-light-primary bg-light-surface-container-low/40" : "hover:bg-light-surface-container-low/30"
+        }`;
+        cell.style.padding = "3mm 5mm";
+        cell.onclick = () => selectSlot(i);
+
+        let brandHtml = "";
+        if (state.template.showBrand) {
+          if (state.template.logoUrl) {
+            brandHtml = `<img src="${state.template.logoUrl}" alt="Brand logo" class="object-contain mb-0.5" style="height: ${brandPx + 6}px; max-width: 70%;">`;
+          } else {
+            brandHtml = `<div class="font-headline uppercase tracking-widest text-light-on-surface" style="font-size: ${brandPx}px; font-weight: 300; line-height: 1.05;">${escapeHtml(state.template.brand)}</div>`;
+          }
+        }
+
+        const contentHtml = isFilled
+          ? `
+            ${brandHtml}
+            <div class="font-body font-bold text-light-on-surface tabular-nums my-0.5" style="font-size: ${pricePx}px; line-height: 1.05;">${escapeHtml(slot.price)}</div>
+            <div class="font-body font-bold uppercase text-light-on-surface px-1" style="font-size: ${descPx}px; line-height: 1.2;">${escapeHtml(slot.description)}</div>
+            <div class="font-body font-bold uppercase text-light-on-surface" style="font-size: ${skuPx}px; line-height: 1.2;">${escapeHtml(slot.sku)}</div>
+          `
+          : `
+            ${brandHtml}
+            <div class="font-mono text-mono-sm text-light-outline mt-1">Empty Slot #${i + 1}</div>
+          `;
+
+        cell.innerHTML = `
+          ${getBorderSvg(state.template.borderStyle)}
+          <span class="slot-badge absolute top-2 left-3 z-20 px-1 rounded-sm bg-light-surface-container-lowest font-mono text-mono-sm ${isActive ? "text-light-primary font-semibold" : "text-light-on-surface-variant"}">#${i + 1}</span>
+          <div class="relative z-10 flex flex-col items-center justify-center w-full">${contentHtml}</div>
+        `;
+        grid.appendChild(cell);
+      }
+
+      document.getElementById("filled-count-pill").textContent = `${filledCount} / ${totalSlots} filled`;
+      syncSlotEditor();
+    }
+
+    function selectSlot(index) {
+      state.activeSlot = index;
+      renderSheet();
+      document.getElementById("scanner-input").focus();
+    }
+
+    function syncSlotEditor() {
+      const slot = state.slots[state.activeSlot] || { price: "", description: "", sku: "" };
+      document.getElementById("active-slot-pill").textContent = `Slot #${state.activeSlot + 1}`;
+      document.getElementById("slot-price-input").value = slot.price;
+      document.getElementById("slot-desc-input").value = slot.description;
+      document.getElementById("slot-sku-input").value = slot.sku;
+    }
+
+    function updateActiveSlotField(field, value) {
+      state.slots[state.activeSlot][field] = value;
+      renderSheet();
+    }
+
+    function clearActiveSlot() {
+      state.slots[state.activeSlot] = { price: "", description: "", sku: "" };
+      renderSheet();
+    }
+
+    function clearAllSlots() {
+      const total = state.grid.cols * state.grid.rows;
+      state.slots = Array.from({ length: total }, () => ({ price: "", description: "", sku: "" }));
+      state.activeSlot = 0;
+      renderSheet();
+    }
+
+    function duplicateActiveToAll() {
+      const current = { ...state.slots[state.activeSlot] };
+      const total = state.grid.cols * state.grid.rows;
+      for (let i = 0; i < total; i++) {
+        state.slots[i] = { ...current };
+      }
+      renderSheet();
+    }
+
+    function applyGridPreset(cols, rows) {
+      document.getElementById("grid-cols-input").value = cols;
+      document.getElementById("grid-rows-input").value = rows;
+      updateGridConfig();
+    }
+
+    function updateGridConfig() {
+      state.grid.cols = Math.max(1, Math.min(6, parseInt(document.getElementById("grid-cols-input").value, 10) || 2));
+      state.grid.rows = Math.max(1, Math.min(12, parseInt(document.getElementById("grid-rows-input").value, 10) || 5));
+      state.grid.marginY = Math.max(0, parseFloat(document.getElementById("margin-y-input").value) || 0);
+      state.grid.marginX = Math.max(0, parseFloat(document.getElementById("margin-x-input").value) || 0);
+      state.grid.gapX = Math.max(0, parseFloat(document.getElementById("gap-x-input").value) || 0);
+      state.grid.gapY = Math.max(0, parseFloat(document.getElementById("gap-y-input").value) || 0);
+      renderSheet();
+    }
+
+    function updateTemplateStyle() {
+      state.template.brand = document.getElementById("brand-text-input").value;
+      state.template.showBrand = document.getElementById("show-brand-toggle").checked;
+      state.template.borderStyle = document.getElementById("border-style-select").value;
+      state.template.priceScale = parseInt(document.getElementById("price-scale-input").value, 10) || 100;
+      document.getElementById("price-scale-val").textContent = `${state.template.priceScale}%`;
+      renderSheet();
+    }
+
+    function handleLogoUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        state.template.logoUrl = e.target.result;
+        renderSheet();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function clearCustomLogo() {
+      state.template.logoUrl = null;
+      document.getElementById("logo-file-input").value = "";
+      renderSheet();
+    }
+
+    // Barcode Scanner & Autocomplete Logic
+    const scannerInput = document.getElementById("scanner-input");
+    const autocompleteList = document.getElementById("autocomplete-list");
+
+    scannerInput.addEventListener("input", () => {
+      const q = scannerInput.value.trim().toLowerCase();
+      if (!q) {
+        autocompleteList.classList.add("hidden");
+        return;
+      }
+      const lookupCol = state.mapping.lookup;
+      const descCol = state.mapping.description;
+      const skuCol = state.mapping.sku;
+      const priceCol = state.mapping.price;
+
+      const matches = state.catalog.filter(row => {
+        const v1 = String(row[lookupCol] || "").toLowerCase();
+        const v2 = String(row[descCol] || "").toLowerCase();
+        const v3 = String(row[skuCol] || "").toLowerCase();
+        return v1.includes(q) || v2.includes(q) || v3.includes(q);
+      }).slice(0, 6);
+
+      if (matches.length === 0) {
+        autocompleteList.classList.add("hidden");
+        return;
+      }
+
+      autocompleteList.innerHTML = matches.map((m, idx) => `
+        <button type="button" data-idx="${idx}" class="w-full text-left px-gutter-md py-gutter-sm hover:bg-light-surface-container-low flex items-center justify-between gap-gutter-sm">
+          <div class="min-w-0">
+            <div class="font-body text-label-md text-light-on-surface truncate">${escapeHtml(String(m[descCol] || ""))}</div>
+            <div class="font-mono text-mono-sm text-light-outline">${escapeHtml(String(m[lookupCol] || m[skuCol] || ""))}</div>
+          </div>
+          <span class="font-body text-label-lg text-light-primary tabular-nums shrink-0">${escapeHtml(String(m[priceCol] || ""))}</span>
+        </button>
+      `).join("");
+
+      Array.from(autocompleteList.querySelectorAll("button")).forEach((btn, idx) => {
+        btn.onclick = () => applyCatalogItem(matches[idx]);
+      });
+
+      autocompleteList.classList.remove("hidden");
+    });
+
+    scannerInput.addEventListener("keydown", e => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const raw = scannerInput.value.trim();
+        if (!raw) return;
+        const q = raw.toLowerCase();
+        const lookupCol = state.mapping.lookup;
+        const skuCol = state.mapping.sku;
+
+        // Exact match on lookup column or barcode/sku
+        let match = state.catalog.find(row =>
+          String(row[lookupCol] || "").toLowerCase() === q ||
+          String(row.barcode || "").toLowerCase() === q ||
+          String(row[skuCol] || "").toLowerCase() === q
+        );
+
+        if (!match) {
+          match = state.catalog.find(row =>
+            String(row[lookupCol] || "").toLowerCase().includes(q) ||
+            String(row[state.mapping.description] || "").toLowerCase().includes(q)
+          );
+        }
+
+        if (match) {
+          applyCatalogItem(match);
+        } else {
+          showScanFeedback(`No match for "${raw}" in catalog`, false);
+        }
+      }
+    });
+
+    function applyCatalogItem(item) {
+      const targetSlot = state.activeSlot;
+      state.slots[targetSlot] = {
+        price: String(item[state.mapping.price] || ""),
+        description: String(item[state.mapping.description] || ""),
+        sku: String(item[state.mapping.sku] || item[state.mapping.lookup] || "")
+      };
+
+      const codeLabel = state.slots[targetSlot].sku || "Item";
+      showScanFeedback(`Filled Slot #${targetSlot + 1} with ${codeLabel}`, true);
+
+      scannerInput.value = "";
+      autocompleteList.classList.add("hidden");
+
+      const total = state.grid.cols * state.grid.rows;
+      if (document.getElementById("auto-advance-toggle").checked) {
+        state.activeSlot = (targetSlot + 1) % total;
+      }
+
+      renderSheet();
+      scannerInput.focus();
+    }
+
+    function showScanFeedback(msg, isSuccess) {
+      const el = document.getElementById("scan-feedback");
+      el.className = `rounded px-gutter-sm py-gutter-xs font-body text-label-md flex items-center gap-gutter-xs ${
+        isSuccess ? "bg-success-container text-on-success-container" : "bg-light-error-container text-light-on-error-container"
+      }`;
+      el.innerHTML = `<span class="material-symbols-outlined text-body-md" aria-hidden="true">${isSuccess ? "check_circle" : "error"}</span><span>${escapeHtml(msg)}</span>`;
+      el.classList.remove("hidden");
+    }
+
+    // CSV / JSON Database Import
+    function handleDatabaseUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        const text = e.target.result;
+        try {
+          let rows = [];
+          if (file.name.toLowerCase().endsWith(".json")) {
+            const parsed = JSON.parse(text);
+            rows = Array.isArray(parsed) ? parsed : (parsed.items || parsed.data || []);
+          } else {
+            rows = parseCsv(text);
+          }
+          if (rows.length > 0) {
+            state.catalog = rows;
+            state.columns = Object.keys(rows[0]);
+            autoGuessMapping();
+            populateMappingSelects();
+            renderCatalogPreview();
+            document.getElementById("db-filename-badge").textContent = file.name;
+            document.getElementById("db-status-text").textContent = `Catalog: ${rows.length} items`;
+          }
+        } catch (err) {
+          showScanFeedback("Could not parse CSV/JSON file", false);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function parseCsv(text) {
+      const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+      if (lines.length < 2) return [];
+      const delimiter = lines[0].includes(";") ? ";" : ",";
+      const headers = lines[0].split(delimiter).map(h => h.trim().replace(/^"|"$/g, ""));
+      return lines.slice(1).map(line => {
+        const vals = line.split(delimiter).map(v => v.trim().replace(/^"|"$/g, ""));
+        const obj = {};
+        headers.forEach((h, i) => { obj[h] = vals[i] || ""; });
+        return obj;
+      });
+    }
+
+    function autoGuessMapping() {
+      const cols = state.columns;
+      const findCol = patterns => cols.find(c => patterns.some(p => c.toLowerCase().includes(p))) || cols[0];
+      state.mapping.lookup = findCol(["barcode", "ean", "upc", "sku", "code", "id"]);
+      state.mapping.price = findCol(["price", "precio", "valor", "cost"]);
+      state.mapping.description = findCol(["desc", "name", "title", "producto", "nombre"]);
+      state.mapping.sku = findCol(["sku", "code", "ref", "barcode"]);
+    }
+
+    function populateMappingSelects() {
+      const ids = [
+        ["map-lookup", "lookup"],
+        ["map-price", "price"],
+        ["map-desc", "description"],
+        ["map-sku", "sku"]
+      ];
+      ids.forEach(([id, key]) => {
+        const sel = document.getElementById(id);
+        sel.innerHTML = state.columns.map(c =>
+          `<option value="${escapeHtml(c)}" ${c === state.mapping[key] ? "selected" : ""}>${escapeHtml(c)}</option>`
+        ).join("");
+      });
+    }
+
+    function updateFieldMapping() {
+      state.mapping.lookup = document.getElementById("map-lookup").value;
+      state.mapping.price = document.getElementById("map-price").value;
+      state.mapping.description = document.getElementById("map-desc").value;
+      state.mapping.sku = document.getElementById("map-sku").value;
+      renderCatalogPreview();
+    }
+
+    function renderCatalogPreview() {
+      const list = document.getElementById("catalog-preview-list");
+      list.innerHTML = state.catalog.slice(0, 25).map((item, idx) => `
+        <button type="button" onclick="applyCatalogIndex(${idx})" class="w-full text-left py-1.5 px-1 hover:bg-light-surface-container-low flex items-center justify-between gap-gutter-sm">
+          <div class="min-w-0">
+            <div class="font-body text-label-md text-light-on-surface truncate">${escapeHtml(String(item[state.mapping.description] || ""))}</div>
+            <div class="font-mono text-mono-sm text-light-outline">${escapeHtml(String(item[state.mapping.lookup] || ""))}</div>
+          </div>
+          <span class="font-body text-label-md text-light-primary tabular-nums shrink-0">${escapeHtml(String(item[state.mapping.price] || ""))}</span>
+        </button>
+      `).join("");
+    }
+
+    function applyCatalogIndex(idx) {
+      if (state.catalog[idx]) applyCatalogItem(state.catalog[idx]);
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    // Initialize studio
+    populateMappingSelects();
+    renderCatalogPreview();
+    renderSheet();
+  </script>
+
+
+</body></html>
