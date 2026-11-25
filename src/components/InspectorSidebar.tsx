@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import {
+  AliasMeta,
   BorderStyle,
   CatalogAlias,
   CatalogRow,
@@ -21,10 +22,11 @@ interface InspectorSidebarProps {
   catalog: CatalogRow[];
   columns: string[];
   aliases: CatalogAlias[];
+  aliasMeta: AliasMeta | null;
   mapping: FieldMapping;
   dbFilename: string;
   scanFeedback: { message: string; isSuccess: boolean } | null;
-  onApplyCatalogItem: (item: CatalogRow) => void;
+  onApplyCatalogItem: (item: CatalogRow, matchedCode?: string) => void;
   onScanNotFound: (query: string) => void;
   onUpdateSlotField: (field: keyof StickerSlot, value: string) => void;
   onDuplicateActiveToAll: () => void;
@@ -35,6 +37,13 @@ interface InspectorSidebarProps {
   onUpdateTemplate: (next: TemplateConfig) => void;
   onUpdateMapping: (next: FieldMapping) => void;
   onOpenImportModal: (pendingFile?: { text: string; filename: string }) => void;
+  autoSave: boolean;
+  hasSavedSettings: boolean;
+  hasUnsavedChanges: boolean;
+  settingsNotice: string | null;
+  onToggleAutoSave: (val: boolean) => void;
+  onSaveSettings: () => void;
+  onResetSavedSettings: () => void;
 }
 
 export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
@@ -48,6 +57,7 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
   catalog,
   columns,
   aliases,
+  aliasMeta,
   mapping,
   dbFilename,
   scanFeedback,
@@ -62,6 +72,13 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
   onUpdateTemplate,
   onUpdateMapping,
   onOpenImportModal,
+  autoSave,
+  hasSavedSettings,
+  hasUnsavedChanges,
+  settingsNotice,
+  onToggleAutoSave,
+  onSaveSettings,
+  onResetSavedSettings,
 }) => {
   const [scanQuery, setScanQuery] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -80,9 +97,19 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
   // O(1) lookup indexes mirroring Excel:
   // B2 = SI.ND(BUSCARV(A2; db!$H:$J; 2; 0); BUSCARV(A2; db!$A:$F; 1; 0))
   // C2 = BUSCARV(B2; db!$A$2:$F$54000; 2; FALSO)
-  const { productByKey, aliasToTarget, targetToAliases } = useMemo(() => {
+  const { productByPrimaryCol, productByKey, aliasToTarget, targetToAliases } = useMemo(() => {
+    const primaryCol = columns[0] || mapping.lookup;
+    const primaryMap = new Map<string, CatalogRow>();
     const pMap = new Map<string, CatalogRow>();
+
     for (const row of catalog) {
+      const colAVal = String(row[primaryCol] || '').trim().toLowerCase();
+      if (colAVal && !primaryMap.has(colAVal)) {
+        primaryMap.set(colAVal, row);
+      }
+      if (colAVal && !pMap.has(colAVal)) {
+        pMap.set(colAVal, row);
+      }
       const lookupVal = String(row[mapping.lookup] || '').trim().toLowerCase();
       if (lookupVal && !pMap.has(lookupVal)) {
         pMap.set(lookupVal, row);
@@ -114,8 +141,13 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
       }
     }
 
-    return { productByKey: pMap, aliasToTarget: aToT, targetToAliases: tToA };
-  }, [catalog, aliases, mapping.lookup, mapping.sku]);
+    return {
+      productByPrimaryCol: primaryMap,
+      productByKey: pMap,
+      aliasToTarget: aToT,
+      targetToAliases: tToA,
+    };
+  }, [catalog, aliases, columns, mapping.lookup, mapping.sku]);
 
   const autocompleteMatches = useMemo(() => {
     const q = scanQuery.trim().toLowerCase();
@@ -182,8 +214,8 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
     });
   }, [catalog, catalogFilter, mapping, targetToAliases]);
 
-  const handleSelectSuggestion = (item: CatalogRow) => {
-    onApplyCatalogItem(item);
+  const handleSelectSuggestion = (item: CatalogRow, matchedAlias?: string) => {
+    onApplyCatalogItem(item, matchedAlias);
     setScanQuery('');
     setDropdownOpen(false);
     setHighlightedIdx(-1);
@@ -219,7 +251,8 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
     if (e.key === 'Enter') {
       e.preventDefault();
       if (dropdownOpen && highlightedIdx >= 0 && autocompleteMatches[highlightedIdx]) {
-        handleSelectSuggestion(autocompleteMatches[highlightedIdx].row);
+        const picked = autocompleteMatches[highlightedIdx];
+        handleSelectSuggestion(picked.row, picked.matchedAlias);
         return;
       }
 
@@ -227,25 +260,52 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
       if (!raw) return;
       const q = raw.toLowerCase();
 
-      // Stage 1 (H:J): look up scanned barcode/code in alias table -> canonical key
+      // Primary Search (H:J): match scanned barcode in H -> get I -> look up in A:F
       let match: CatalogRow | undefined;
+      let matchedAliasCode: string | undefined;
+
       const aliasTarget = aliasToTarget.get(q);
       if (aliasTarget) {
-        match = productByKey.get(aliasTarget);
+        match =
+          productByPrimaryCol.get(aliasTarget) ||
+          productByKey.get(aliasTarget);
+        if (match) matchedAliasCode = raw;
       }
 
-      // Stage 2 (A:F): fall back to direct key lookup
+      // Secondary Search (A:F): direct key lookup if not found in H:J
       if (!match) {
-        match = productByKey.get(q);
+        match = productByPrimaryCol.get(q) || productByKey.get(q);
+      }
+
+      // Numeric leading-zero safeguard if exact H:J and A:F both missed
+      if (!match && /^\d+$/.test(q)) {
+        const stripped = q.replace(/^0+/, '');
+        const padded = '0' + q;
+        const altTarget =
+          aliasToTarget.get(stripped) || aliasToTarget.get(padded);
+        if (altTarget) {
+          match =
+            productByPrimaryCol.get(altTarget) ||
+            productByKey.get(altTarget);
+          if (match) matchedAliasCode = raw;
+        }
+        if (!match) {
+          match =
+            productByPrimaryCol.get(stripped) ||
+            productByKey.get(stripped) ||
+            productByPrimaryCol.get(padded) ||
+            productByKey.get(padded);
+        }
       }
 
       // Stage 3: partial match fallback (if typed manually)
-      if (!match) {
-        match = autocompleteMatches[0]?.row;
+      if (!match && autocompleteMatches[0]) {
+        match = autocompleteMatches[0].row;
+        matchedAliasCode = autocompleteMatches[0].matchedAlias;
       }
 
       if (match) {
-        handleSelectSuggestion(match);
+        handleSelectSuggestion(match, matchedAliasCode);
       } else {
         onScanNotFound(raw);
         setDropdownOpen(false);
@@ -395,7 +455,7 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
                         type="button"
                         onMouseDown={(e) => {
                           e.preventDefault();
-                          handleSelectSuggestion(m);
+                          handleSelectSuggestion(m, matchedAlias);
                         }}
                         className={`w-full text-left px-gutter-md py-gutter-sm flex items-center justify-between gap-gutter-sm transition-colors cursor-pointer ${
                           idx === highlightedIdx
@@ -420,6 +480,12 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
                   </div>
                 )}
               </div>
+
+              {aliases.length > 0 && (
+                <p className="font-mono text-mono-sm text-light-on-surface-variant">
+                  1° {aliasMeta?.codeCol || 'Codigo'} (H:J · {aliases.length}) → 2° {mapping.lookup} (A:F)
+                </p>
+              )}
 
               {scanFeedback && (
                 <div
@@ -488,6 +554,7 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
                 </span>
                 <input
                   type="text"
+                  data-slot-edit="true"
                   value={slotData.price}
                   onChange={(e) => onUpdateSlotField('price', e.target.value)}
                   className="w-full rounded bg-light-surface-container-lowest border border-light-outline-variant px-gutter-md py-gutter-sm font-body text-body-md text-light-on-surface tabular-nums focus:border-light-primary focus:ring-1 focus:ring-light-primary focus:outline-none"
@@ -500,6 +567,7 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
                 </span>
                 <input
                   type="text"
+                  data-slot-edit="true"
                   value={slotData.description}
                   onChange={(e) => onUpdateSlotField('description', e.target.value)}
                   className="w-full rounded bg-light-surface-container-lowest border border-light-outline-variant px-gutter-md py-gutter-sm font-body text-body-md text-light-on-surface focus:border-light-primary focus:ring-1 focus:ring-light-primary focus:outline-none"
@@ -512,11 +580,16 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
                 </span>
                 <input
                   type="text"
+                  data-slot-edit="true"
                   value={slotData.sku}
                   onChange={(e) => onUpdateSlotField('sku', e.target.value)}
                   className="w-full rounded bg-light-surface-container-lowest border border-light-outline-variant px-gutter-md py-gutter-sm font-mono text-mono-md text-light-on-surface focus:border-light-primary focus:ring-1 focus:ring-light-primary focus:outline-none"
                 />
               </label>
+
+              <p className="pt-gutter-xs border-t border-light-outline-variant font-mono text-mono-sm text-light-outline">
+                ↑↓←→ Move slot · Enter Confirm · Ctrl+C/V Copy/Paste
+              </p>
             </article>
           </div>
         )}
@@ -1042,31 +1115,92 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
                     No matching items
                   </div>
                 ) : (
-                  filteredCatalogPreview.slice(0, 50).map((item, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => onApplyCatalogItem(item)}
-                      className="w-full text-left py-1.5 px-1 hover:bg-light-surface-container-low flex items-center justify-between gap-gutter-sm cursor-pointer"
-                    >
-                      <div className="min-w-0">
-                        <div className="font-body text-label-md text-light-on-surface truncate">
-                          {item[mapping.description] || ''}
+                  filteredCatalogPreview.slice(0, 50).map((item, idx) => {
+                    const keyLower = String(item[mapping.lookup] || '').trim().toLowerCase();
+                    const itemAliases = keyLower ? targetToAliases.get(keyLower) : undefined;
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => onApplyCatalogItem(item, itemAliases?.[0])}
+                        className="w-full text-left py-1.5 px-1 hover:bg-light-surface-container-low flex items-center justify-between gap-gutter-sm cursor-pointer"
+                      >
+                        <div className="min-w-0">
+                          <div className="font-body text-label-md text-light-on-surface truncate">
+                            {item[mapping.description] || ''}
+                          </div>
+                          <div className="font-mono text-mono-sm text-light-outline truncate">
+                            {itemAliases && itemAliases.length > 0
+                              ? `${itemAliases[0]} → `
+                              : ''}
+                            {item[mapping.lookup] || ''}
+                          </div>
                         </div>
-                        <div className="font-mono text-mono-sm text-light-outline">
-                          {item[mapping.lookup] || ''}
-                        </div>
-                      </div>
-                      <span className="font-body text-label-md text-light-primary tabular-nums shrink-0">
-                        {item[mapping.price] || ''}
-                      </span>
-                    </button>
-                  ))
+                        <span className="font-body text-label-md text-light-primary tabular-nums shrink-0">
+                          {item[mapping.price] || ''}
+                        </span>
+                      </button>
+                    );
+                  })
                 )}
               </div>
             </article>
           </div>
         )}
+      </div>
+
+      {/* Studio Settings Persistence */}
+      <div className="mt-auto pt-gutter-md border-t border-light-outline-variant flex flex-col gap-gutter-sm">
+        <div className="flex items-center justify-between gap-gutter-sm">
+          <span className="font-body text-label-md text-light-on-surface">
+            Studio Settings
+          </span>
+          <span className="font-mono text-mono-sm text-light-on-surface-variant">
+            {settingsNotice
+              ? settingsNotice
+              : hasUnsavedChanges
+                ? 'Unsaved changes'
+                : hasSavedSettings
+                  ? 'Saved'
+                  : 'Defaults'}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-gutter-sm">
+          <button
+            type="button"
+            onClick={onSaveSettings}
+            className="flex-1 inline-flex items-center justify-center gap-gutter-xs px-gutter-md py-gutter-xs rounded bg-light-surface-container-lowest text-light-primary border border-light-outline-variant hover:bg-light-surface-container font-body text-label-md whitespace-nowrap transition-colors duration-state-change cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-title-md" aria-hidden="true">
+              save
+            </span>
+            <span>Save Settings</span>
+          </button>
+
+          {(hasSavedSettings || hasUnsavedChanges) && (
+            <button
+              type="button"
+              onClick={onResetSavedSettings}
+              title="Clear saved settings and restore defaults"
+              className="px-gutter-sm py-gutter-xs rounded border border-light-outline-variant bg-light-surface-container-lowest text-light-on-surface-variant hover:text-light-error hover:bg-light-surface-container font-body text-label-md whitespace-nowrap transition-colors duration-state-change cursor-pointer"
+            >
+              Reset
+            </button>
+          )}
+        </div>
+
+        <label className="flex items-center justify-between cursor-pointer">
+          <span className="font-body text-label-sm text-light-on-surface-variant">
+            Auto-save changes across sessions
+          </span>
+          <input
+            type="checkbox"
+            checked={autoSave}
+            onChange={(e) => onToggleAutoSave(e.target.checked)}
+            className="rounded border-light-outline-variant text-light-primary focus:ring-light-primary cursor-pointer"
+          />
+        </label>
       </div>
     </aside>
   );

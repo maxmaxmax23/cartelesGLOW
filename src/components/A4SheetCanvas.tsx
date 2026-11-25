@@ -83,7 +83,10 @@ export const A4SheetCanvas: React.FC<A4SheetCanvasProps> = ({
                   aria-pressed={isActive}
                   onClick={() => onSelectSlot(i)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
+                    if (e.key === ' ') {
+                      e.preventDefault();
+                      onSelectSlot(i);
+                    } else if (e.key === 'Enter' && i !== activeSlot) {
                       e.preventDefault();
                       onSelectSlot(i);
                     }

@@ -1,4 +1,4 @@
-import { CatalogAlias, CatalogRow, FieldMapping } from '../types';
+import { AliasMeta, CatalogAlias, CatalogRow, FieldMapping } from '../types';
 
 function splitCsvLine(line: string, delimiter: string): string[] {
   const result: string[] = [];
@@ -29,6 +29,7 @@ export interface ParsedCatalogResult {
   rows: CatalogRow[];
   columns: string[];
   aliases: CatalogAlias[];
+  aliasMeta: AliasMeta | null;
 }
 
 export function parseCsv(text: string): ParsedCatalogResult {
@@ -58,18 +59,23 @@ export function parseCsv(text: string): ParsedCatalogResult {
 
   // Detect side-by-side Excel lookup layout:
   // e.g. Articulo; Desc. Articulo; L. de precio; Descripcion; Vigencia; Precio; ; Codigo; Articulo; Descripcion
-  // Look for a secondary block starting at a `Codigo` (or barcode) column followed by a duplicate primary key column (e.g. `Articulo`).
-  const normalized = rawHeaders.map((h) => h.toLowerCase());
+  // H:J matrix where H is barcode (Codigo) and I is canonical key (Articulo) mapped into A:F.
+  const normalized = rawHeaders.map((h) => h.trim().toLowerCase());
   let aliasCodeIdx = -1;
   let aliasTargetIdx = -1;
 
   for (let i = 1; i < normalized.length - 1; i++) {
     const h = normalized[i];
     const isCodeCol =
-      h === 'codigo' || h === 'código' || h === 'barcode' || h === 'ean';
+      h === 'codigo' ||
+      h === 'código' ||
+      h === 'barcode' ||
+      h === 'ean' ||
+      h === 'upc' ||
+      (i >= 4 && (h.includes('codigo') || h.includes('código') || h.includes('barcode')));
     if (!isCodeCol) continue;
 
-    // Check if an earlier column before i already shares a header name with a column after i (like `Articulo`)
+    // Look for a column after i whose header duplicates one of the left-side headers (e.g. `Articulo`)
     const leftSet = new Set(normalized.slice(0, i).filter(Boolean));
     const dupIdx = normalized.findIndex(
       (col, idx) => idx > i && col !== '' && leftSet.has(col)
@@ -88,15 +94,23 @@ export function parseCsv(text: string): ParsedCatalogResult {
   }
 
   const aliases: CatalogAlias[] = [];
+  let aliasMeta: AliasMeta | null = null;
   const mainEndIdx = aliasCodeIdx !== -1 ? aliasCodeIdx : rawHeaders.length;
 
-  // Build deduplicated column descriptors for the main table (ignoring blank separator columns)
+  if (aliasCodeIdx !== -1 && aliasTargetIdx !== -1) {
+    aliasMeta = {
+      codeCol: rawHeaders[aliasCodeIdx].trim(),
+      targetCol: rawHeaders[aliasTargetIdx].trim(),
+    };
+  }
+
+  // Build deduplicated column descriptors for the main A:F table (ignoring blank separator columns)
   const usedNames = new Map<string, number>();
   const mainCols: { index: number; name: string }[] = [];
 
   for (let i = 0; i < mainEndIdx; i++) {
     const rawName = rawHeaders[i].trim();
-    if (!rawName) continue; // skip empty separator columns (e.g. col G)
+    if (!rawName) continue;
 
     const count = (usedNames.get(rawName) || 0) + 1;
     usedNames.set(rawName, count);
@@ -140,6 +154,7 @@ export function parseCsv(text: string): ParsedCatalogResult {
     rows,
     columns: mainCols.map((c) => c.name),
     aliases,
+    aliasMeta,
   };
 }
 
@@ -198,7 +213,7 @@ export function parseCatalogText(
 
     const colSet = new Set<string>();
     rows.forEach((r) => Object.keys(r).forEach((k) => colSet.add(k)));
-    return { rows, columns: Array.from(colSet), aliases: [] };
+    return { rows, columns: Array.from(colSet), aliases: [], aliasMeta: null };
   }
 
   return parseCsv(trimmed);
@@ -209,7 +224,6 @@ export function autoGuessMapping(columns: string[]): FieldMapping {
     return { lookup: '', price: '', description: '', sku: '' };
   }
 
-  // Match exact header names in priority order first, then fall back to substring patterns
   const findCol = (
     exactCandidates: string[],
     partialPatterns: string[],
@@ -228,8 +242,8 @@ export function autoGuessMapping(columns: string[]): FieldMapping {
 
   return {
     lookup: findCol(
-      ['barcode', 'ean', 'upc', 'codigo', 'código', 'articulo', 'artículo', 'sku', 'code', 'id'],
-      ['barcode', 'ean', 'upc', 'gtin', 'codigo', 'articulo', 'sku', 'code', 'id']
+      ['articulo', 'artículo', 'barcode', 'ean', 'upc', 'codigo', 'código', 'sku', 'code', 'id'],
+      ['articulo', 'barcode', 'ean', 'upc', 'gtin', 'codigo', 'sku', 'code', 'id']
     ),
     price: findCol(
       ['precio', 'price', 'pvp', 'valor', 'amount', 'cost'],

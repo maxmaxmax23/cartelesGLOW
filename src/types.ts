@@ -5,6 +5,11 @@ export interface CatalogAlias {
   target: string;
 }
 
+export interface AliasMeta {
+  codeCol: string;
+  targetCol: string;
+}
+
 export interface FieldMapping {
   lookup: string;
   price: string;

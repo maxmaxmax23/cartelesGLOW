@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { CatalogAlias, CatalogRow, FieldMapping } from '../types';
+import React, { useEffect, useMemo, useState } from 'react';
+import { AliasMeta, CatalogAlias, CatalogRow, FieldMapping } from '../types';
 import { autoGuessMapping, parseCatalogText } from '../utils/catalogParser';
 
 interface ImportDatabaseModalProps {
@@ -8,6 +8,7 @@ interface ImportDatabaseModalProps {
   initialCatalog: CatalogRow[];
   initialColumns: string[];
   initialAliases: CatalogAlias[];
+  initialAliasMeta: AliasMeta | null;
   initialFilename: string;
   initialMapping: FieldMapping;
   pendingFile?: { text: string; filename: string } | null;
@@ -15,6 +16,7 @@ interface ImportDatabaseModalProps {
     catalog: CatalogRow[];
     columns: string[];
     aliases: CatalogAlias[];
+    aliasMeta: AliasMeta | null;
     filename: string;
     mapping: FieldMapping;
   }) => void;
@@ -26,6 +28,7 @@ export const ImportDatabaseModal: React.FC<ImportDatabaseModalProps> = ({
   initialCatalog,
   initialColumns,
   initialAliases,
+  initialAliasMeta,
   initialFilename,
   initialMapping,
   pendingFile,
@@ -36,6 +39,7 @@ export const ImportDatabaseModal: React.FC<ImportDatabaseModalProps> = ({
   const [rows, setRows] = useState<CatalogRow[]>(initialCatalog);
   const [columns, setColumns] = useState<string[]>(initialColumns);
   const [aliases, setAliases] = useState<CatalogAlias[]>(initialAliases);
+  const [aliasMeta, setAliasMeta] = useState<AliasMeta | null>(initialAliasMeta);
   const [mapping, setMapping] = useState<FieldMapping>(initialMapping);
   const [pasteText, setPasteText] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -53,6 +57,7 @@ export const ImportDatabaseModal: React.FC<ImportDatabaseModalProps> = ({
         setRows(parsed.rows);
         setColumns(parsed.columns);
         setAliases(parsed.aliases);
+        setAliasMeta(parsed.aliasMeta);
         setMapping(autoGuessMapping(parsed.columns));
       } catch (err) {
         setFilename(pendingFile.filename);
@@ -60,6 +65,7 @@ export const ImportDatabaseModal: React.FC<ImportDatabaseModalProps> = ({
         setRows(initialCatalog);
         setColumns(initialColumns);
         setAliases(initialAliases);
+        setAliasMeta(initialAliasMeta);
         setMapping(initialMapping);
       }
     } else {
@@ -67,9 +73,19 @@ export const ImportDatabaseModal: React.FC<ImportDatabaseModalProps> = ({
       setRows(initialCatalog);
       setColumns(initialColumns);
       setAliases(initialAliases);
+      setAliasMeta(initialAliasMeta);
       setMapping(initialMapping);
     }
-  }, [isOpen, pendingFile, initialCatalog, initialColumns, initialAliases, initialFilename, initialMapping]);
+  }, [
+    isOpen,
+    pendingFile,
+    initialCatalog,
+    initialColumns,
+    initialAliases,
+    initialAliasMeta,
+    initialFilename,
+    initialMapping,
+  ]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -82,6 +98,21 @@ export const ImportDatabaseModal: React.FC<ImportDatabaseModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
+  const targetToBarcodes = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const a of aliases) {
+      const key = a.target.trim().toLowerCase();
+      if (!key) continue;
+      const list = map.get(key);
+      if (list) {
+        if (list.length < 3) list.push(a.code.trim());
+      } else {
+        map.set(key, [a.code.trim()]);
+      }
+    }
+    return map;
+  }, [aliases]);
+
   if (!isOpen) return null;
 
   const loadTextData = (text: string, name: string) => {
@@ -91,6 +122,7 @@ export const ImportDatabaseModal: React.FC<ImportDatabaseModalProps> = ({
       setRows(parsed.rows);
       setColumns(parsed.columns);
       setAliases(parsed.aliases);
+      setAliasMeta(parsed.aliasMeta);
       setMapping(autoGuessMapping(parsed.columns));
       setErrorMsg(null);
     } catch (err) {
@@ -126,6 +158,7 @@ export const ImportDatabaseModal: React.FC<ImportDatabaseModalProps> = ({
       catalog: rows,
       columns,
       aliases,
+      aliasMeta,
       filename,
       mapping,
     });
@@ -317,10 +350,33 @@ export const ImportDatabaseModal: React.FC<ImportDatabaseModalProps> = ({
               </span>
             </div>
 
+            {aliases.length > 0 && (
+              <div className="rounded-md bg-light-surface-container-low border border-light-outline-variant px-gutter-md py-gutter-sm flex flex-wrap items-center justify-between gap-gutter-sm">
+                <div className="flex items-center gap-gutter-sm">
+                  <span className="material-symbols-outlined text-title-md text-light-primary" aria-hidden="true">
+                    barcode_scanner
+                  </span>
+                  <span className="font-body text-body-md text-light-on-surface">
+                    Primary Barcode Matrix (H:J):{' '}
+                    <span className="font-mono text-mono-sm font-semibold">
+                      {aliasMeta?.codeCol || 'Codigo'} → {aliasMeta?.targetCol || 'Articulo'}
+                    </span>{' '}
+                    resolved against{' '}
+                    <span className="font-mono text-mono-sm font-semibold">
+                      {mapping.lookup}
+                    </span>
+                  </span>
+                </div>
+                <span className="font-mono text-mono-sm text-light-primary tabular-nums">
+                  {aliases.length} barcodes
+                </span>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-gutter-md">
               <label className="flex flex-col gap-gutter-xs">
                 <span className="font-body text-label-md text-light-on-surface-variant">
-                  Barcode / Lookup
+                  {aliases.length > 0 ? 'Secondary Key (A:F)' : 'Barcode / Lookup'}
                 </span>
                 <select
                   value={mapping.lookup}
@@ -403,8 +459,13 @@ export const ImportDatabaseModal: React.FC<ImportDatabaseModalProps> = ({
               <table className="w-full text-left border-collapse">
                 <thead className="bg-light-surface-container-low border-b border-light-outline-variant">
                   <tr>
+                    {aliases.length > 0 && (
+                      <th className="px-gutter-md py-gutter-sm font-body text-label-md text-light-on-surface-variant">
+                        Barcodes ({aliasMeta?.codeCol || 'H'})
+                      </th>
+                    )}
                     <th className="px-gutter-md py-gutter-sm font-body text-label-md text-light-on-surface-variant">
-                      Lookup Key
+                      {aliases.length > 0 ? `${mapping.lookup} (A)` : 'Lookup Key'}
                     </th>
                     <th className="px-gutter-md py-gutter-sm font-body text-label-md text-light-on-surface-variant">
                       Price
@@ -418,22 +479,31 @@ export const ImportDatabaseModal: React.FC<ImportDatabaseModalProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-light-outline-variant">
-                  {rows.slice(0, 5).map((row, idx) => (
-                    <tr key={idx} className="hover:bg-light-surface-container-low/50">
-                      <td className="px-gutter-md py-gutter-sm font-mono text-mono-sm text-light-on-surface tabular-nums">
-                        {row[mapping.lookup] || '—'}
-                      </td>
-                      <td className="px-gutter-md py-gutter-sm font-body text-label-lg text-light-on-surface tabular-nums">
-                        {row[mapping.price] || '—'}
-                      </td>
-                      <td className="px-gutter-md py-gutter-sm font-body text-body-md text-light-on-surface-variant">
-                        {row[mapping.description] || '—'}
-                      </td>
-                      <td className="px-gutter-md py-gutter-sm font-mono text-mono-sm text-light-on-surface-variant">
-                        {row[mapping.sku] || '—'}
-                      </td>
-                    </tr>
-                  ))}
+                  {rows.slice(0, 5).map((row, idx) => {
+                    const keyLower = String(row[mapping.lookup] || '').trim().toLowerCase();
+                    const linkedBarcodes = keyLower ? targetToBarcodes.get(keyLower) : undefined;
+                    return (
+                      <tr key={idx} className="hover:bg-light-surface-container-low/50">
+                        {aliases.length > 0 && (
+                          <td className="px-gutter-md py-gutter-sm font-mono text-mono-sm text-light-primary tabular-nums">
+                            {linkedBarcodes ? linkedBarcodes.join(', ') : '—'}
+                          </td>
+                        )}
+                        <td className="px-gutter-md py-gutter-sm font-mono text-mono-sm text-light-on-surface tabular-nums">
+                          {row[mapping.lookup] || '—'}
+                        </td>
+                        <td className="px-gutter-md py-gutter-sm font-body text-label-lg text-light-on-surface tabular-nums">
+                          {row[mapping.price] || '—'}
+                        </td>
+                        <td className="px-gutter-md py-gutter-sm font-body text-body-md text-light-on-surface-variant">
+                          {row[mapping.description] || '—'}
+                        </td>
+                        <td className="px-gutter-md py-gutter-sm font-mono text-mono-sm text-light-on-surface-variant">
+                          {row[mapping.sku] || '—'}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

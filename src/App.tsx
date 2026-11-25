@@ -1,10 +1,11 @@
-import { useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { A4SheetCanvas } from './components/A4SheetCanvas';
 import { ImportDatabaseModal } from './components/ImportDatabaseModal';
 import { InspectorSidebar } from './components/InspectorSidebar';
 import { StudioHeader } from './components/StudioHeader';
 import { DEFAULT_CATALOG, DEFAULT_COLUMNS } from './data/defaultCatalog';
 import {
+  AliasMeta,
   CatalogAlias,
   CatalogRow,
   FieldMapping,
@@ -14,14 +15,35 @@ import {
   TemplateConfig,
   ZoomLevel,
 } from './types';
+import {
+  clearStudioSettings,
+  DEFAULT_AUTO_ADVANCE,
+  DEFAULT_GRID,
+  DEFAULT_TEMPLATE,
+  DEFAULT_ZOOM,
+  loadStudioSettings,
+  saveStudioSettings,
+} from './utils/settingsStorage';
+
+function serializeSettings(
+  template: TemplateConfig,
+  grid: GridConfig,
+  zoom: ZoomLevel,
+  autoAdvance: boolean
+): string {
+  return JSON.stringify({ template, grid, zoom, autoAdvance });
+}
 
 export default function App() {
+  const initialLoaded = useMemo(() => loadStudioSettings(), []);
+
   const [activeTab, setActiveTab] = useState<StudioTab>('scan');
-  const [zoom, setZoom] = useState<ZoomLevel>(0.82);
+  const [zoom, setZoom] = useState<ZoomLevel>(initialLoaded.settings.zoom);
 
   const [catalog, setCatalog] = useState<CatalogRow[]>(DEFAULT_CATALOG);
   const [columns, setColumns] = useState<string[]>(DEFAULT_COLUMNS);
   const [aliases, setAliases] = useState<CatalogAlias[]>([]);
+  const [aliasMeta, setAliasMeta] = useState<AliasMeta | null>(null);
   const [dbFilename, setDbFilename] = useState<string>('sample_glowup.json');
   const [mapping, setMapping] = useState<FieldMapping>({
     lookup: 'sku',
@@ -30,36 +52,48 @@ export default function App() {
     sku: 'sku',
   });
 
-  const [grid, setGrid] = useState<GridConfig>({
-    cols: 2,
-    rows: 5,
-    marginY: 10,
-    marginX: 14,
-    gapX: 6,
-    gapY: 4,
-  });
-
-  const [template, setTemplate] = useState<TemplateConfig>({
-    brand: 'GLOWUP',
-    logoUrl: null,
-    showBrand: true,
-    borderStyle: 'notched-double',
-    brandScale: 100,
-    priceScale: 100,
-    descriptionScale: 100,
-    skuScale: 100,
-  });
-
-  const [slots, setSlots] = useState<StickerSlot[]>(() =>
-    DEFAULT_CATALOG.slice(0, 10).map((item) => ({
-      price: item.price,
-      description: item.description,
-      sku: item.sku,
-    }))
+  const [grid, setGrid] = useState<GridConfig>(initialLoaded.settings.grid);
+  const [template, setTemplate] = useState<TemplateConfig>(
+    initialLoaded.settings.template
   );
 
+  const [slots, setSlots] = useState<StickerSlot[]>(() => {
+    const initialCount =
+      initialLoaded.settings.grid.cols * initialLoaded.settings.grid.rows;
+    return Array.from({ length: initialCount }, (_, i) => {
+      const item = DEFAULT_CATALOG[i];
+      return item
+        ? { price: item.price, description: item.description, sku: item.sku }
+        : { price: '', description: '', sku: '' };
+    });
+  });
+
   const [activeSlot, setActiveSlot] = useState<number>(0);
-  const [autoAdvance, setAutoAdvance] = useState<boolean>(true);
+  const [autoAdvance, setAutoAdvance] = useState<boolean>(
+    initialLoaded.settings.autoAdvance
+  );
+  const [autoSave, setAutoSave] = useState<boolean>(
+    initialLoaded.settings.autoSave
+  );
+  const [hasSavedSettings, setHasSavedSettings] = useState<boolean>(
+    initialLoaded.hasSaved
+  );
+  const [savedSignature, setSavedSignature] = useState<string>(() =>
+    initialLoaded.hasSaved
+      ? serializeSettings(
+          initialLoaded.settings.template,
+          initialLoaded.settings.grid,
+          initialLoaded.settings.zoom,
+          initialLoaded.settings.autoAdvance
+        )
+      : serializeSettings(
+          DEFAULT_TEMPLATE,
+          DEFAULT_GRID,
+          DEFAULT_ZOOM,
+          DEFAULT_AUTO_ADVANCE
+        )
+  );
+  const [settingsNotice, setSettingsNotice] = useState<string | null>(null);
   const [scanFeedback, setScanFeedback] = useState<{
     message: string;
     isSuccess: boolean;
@@ -70,8 +104,10 @@ export default function App() {
     text: string;
     filename: string;
   } | null>(null);
+  const [copiedSlot, setCopiedSlot] = useState<StickerSlot | null>(null);
 
   const scannerInputRef = useRef<HTMLInputElement | null>(null);
+  const lastCopiedTextRef = useRef<string | null>(null);
 
   const totalSlots = grid.cols * grid.rows;
 
@@ -85,6 +121,180 @@ export default function App() {
   const filledCount = normalizedSlots.filter((s) =>
     Boolean(s.price || s.description || s.sku)
   ).length;
+
+  useEffect(() => {
+    const confirmCurrentSlot = () => {
+      const slot = normalizedSlots[safeActiveSlot];
+      const label = slot.sku || slot.description || slot.price;
+      setScanFeedback({
+        message: label
+          ? `Confirmed Slot #${safeActiveSlot + 1} (${label})`
+          : `Confirmed Slot #${safeActiveSlot + 1}`,
+        isSuccess: true,
+      });
+      if (autoAdvance) {
+        setActiveSlot((safeActiveSlot + 1) % totalSlots);
+      }
+      if (activeTab === 'scan') {
+        scannerInputRef.current?.focus();
+      }
+    };
+
+    const copyCurrentSlot = () => {
+      const slot = normalizedSlots[safeActiveSlot];
+      setCopiedSlot({ ...slot });
+      const textRep = [slot.price, slot.description, slot.sku]
+        .filter(Boolean)
+        .join(' | ');
+      lastCopiedTextRef.current = textRep;
+      if (textRep && navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(textRep).catch(() => {});
+      }
+      setScanFeedback({
+        message: slot.sku
+          ? `Copied Slot #${safeActiveSlot + 1} (${slot.sku})`
+          : `Copied Slot #${safeActiveSlot + 1}`,
+        isSuccess: true,
+      });
+    };
+
+    const pasteIntoCurrentSlot = (source: StickerSlot) => {
+      setSlots((prev) => {
+        const next = Array.from(
+          { length: Math.max(prev.length, totalSlots) },
+          (_, i) => prev[i] || { price: '', description: '', sku: '' }
+        );
+        next[safeActiveSlot] = { ...source };
+        return next;
+      });
+      setScanFeedback({
+        message: source.sku
+          ? `Pasted ${source.sku} into Slot #${safeActiveSlot + 1}`
+          : `Pasted into Slot #${safeActiveSlot + 1}`,
+        isSuccess: true,
+      });
+    };
+
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (importModalOpen || e.defaultPrevented) return;
+
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName?.toLowerCase() ?? '';
+      const isScanner = target?.id === 'scanner-input';
+      const isSlotEdit = target?.dataset?.slotEdit === 'true';
+      const isInput = tag === 'input';
+      const isTextAreaOrSelect =
+        tag === 'textarea' || tag === 'select' || target?.isContentEditable;
+
+      // 1. Ctrl+C / Cmd+C: Copy active slot (unless user highlighted text inside an input/textarea)
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'c') {
+        if (isInput || tag === 'textarea') {
+          const inputEl = target as HTMLInputElement | HTMLTextAreaElement;
+          const hasSelection =
+            typeof inputEl.selectionStart === 'number' &&
+            typeof inputEl.selectionEnd === 'number' &&
+            inputEl.selectionStart !== inputEl.selectionEnd;
+          if (hasSelection) return;
+          if (!isScanner) return;
+        }
+        if (window.getSelection()?.toString()) return;
+        e.preventDefault();
+        copyCurrentSlot();
+        return;
+      }
+
+      // 2. Ctrl+V / Cmd+V: Paste copied slot when not editing a text input
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'v') {
+        if (isInput || isTextAreaOrSelect) {
+          // For #scanner-input, handled cleanly in the paste listener below so external barcode paste still works
+          return;
+        }
+        if (copiedSlot) {
+          e.preventDefault();
+          pasteIntoCurrentSlot(copiedSlot);
+        }
+        return;
+      }
+
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+      // 3. Arrow Keys: Navigate between slots
+      if (
+        e.key === 'ArrowLeft' ||
+        e.key === 'ArrowRight' ||
+        e.key === 'ArrowUp' ||
+        e.key === 'ArrowDown'
+      ) {
+        if (isTextAreaOrSelect) return;
+        if (isInput) {
+          const inputEl = target as HTMLInputElement;
+          // Allow arrow slot navigation from #scanner-input only when it's empty
+          if (!isScanner || inputEl.value.length > 0) return;
+        }
+
+        e.preventDefault();
+        let nextSlot = safeActiveSlot;
+        if (e.key === 'ArrowRight') {
+          nextSlot = (safeActiveSlot + 1) % totalSlots;
+        } else if (e.key === 'ArrowLeft') {
+          nextSlot = (safeActiveSlot - 1 + totalSlots) % totalSlots;
+        } else if (e.key === 'ArrowDown') {
+          nextSlot = (safeActiveSlot + grid.cols) % totalSlots;
+        } else if (e.key === 'ArrowUp') {
+          nextSlot = (safeActiveSlot - grid.cols + totalSlots) % totalSlots;
+        }
+        setActiveSlot(nextSlot);
+        return;
+      }
+
+      // 4. Enter: Confirm current slot
+      if (e.key === 'Enter') {
+        if (isTextAreaOrSelect || tag === 'button' || tag === 'a') return;
+        if (isInput) {
+          const inputEl = target as HTMLInputElement;
+          if (isScanner) {
+            if (inputEl.value.trim().length > 0) return;
+          } else if (!isSlotEdit) {
+            return;
+          }
+        }
+        e.preventDefault();
+        confirmCurrentSlot();
+      }
+    };
+
+    const handleGlobalPaste = (e: ClipboardEvent) => {
+      if (importModalOpen || !copiedSlot) return;
+      const target = e.target as HTMLElement | null;
+      if (target?.id !== 'scanner-input') return;
+
+      const pastedText = e.clipboardData?.getData('text/plain') ?? '';
+      if (
+        pastedText === '' ||
+        (lastCopiedTextRef.current !== null &&
+          pastedText === lastCopiedTextRef.current)
+      ) {
+        e.preventDefault();
+        pasteIntoCurrentSlot(copiedSlot);
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    window.addEventListener('paste', handleGlobalPaste);
+    return () => {
+      window.removeEventListener('keydown', handleGlobalKeyDown);
+      window.removeEventListener('paste', handleGlobalPaste);
+    };
+  }, [
+    importModalOpen,
+    normalizedSlots,
+    safeActiveSlot,
+    totalSlots,
+    grid.cols,
+    autoAdvance,
+    activeTab,
+    copiedSlot,
+  ]);
 
   const handleSelectSlot = (index: number) => {
     setActiveSlot(index);
@@ -112,7 +322,7 @@ export default function App() {
     }
   };
 
-  const handleApplyCatalogItem = (item: CatalogRow) => {
+  const handleApplyCatalogItem = (item: CatalogRow, matchedCode?: string) => {
     const target = safeActiveSlot;
     const nextItem: StickerSlot = {
       price: String(item[mapping.price] || ''),
@@ -130,7 +340,9 @@ export default function App() {
 
     const codeLabel = nextItem.sku || 'Item';
     setScanFeedback({
-      message: `Filled Slot #${target + 1} with ${codeLabel}`,
+      message: matchedCode
+        ? `${matchedCode} → ${codeLabel} · Filled Slot #${target + 1}`
+        : `Filled Slot #${target + 1} with ${codeLabel}`,
       isSuccess: true,
     });
 
@@ -199,12 +411,14 @@ export default function App() {
     catalog: CatalogRow[];
     columns: string[];
     aliases: CatalogAlias[];
+    aliasMeta: AliasMeta | null;
     filename: string;
     mapping: FieldMapping;
   }) => {
     setCatalog(payload.catalog);
     setColumns(payload.columns);
     setAliases(payload.aliases);
+    setAliasMeta(payload.aliasMeta);
     setDbFilename(payload.filename);
     setMapping(payload.mapping);
     const aliasMsg =
@@ -213,6 +427,87 @@ export default function App() {
       message: `Loaded ${payload.catalog.length} records${aliasMsg} from ${payload.filename}`,
       isSuccess: true,
     });
+  };
+
+  const currentSignature = serializeSettings(template, grid, zoom, autoAdvance);
+  const hasUnsavedChanges = currentSignature !== savedSignature;
+
+  useEffect(() => {
+    if (!autoSave) return;
+    const ok = saveStudioSettings({
+      template,
+      grid,
+      zoom,
+      autoAdvance,
+      autoSave: true,
+    });
+    if (ok) {
+      setHasSavedSettings(true);
+      setSavedSignature(currentSignature);
+    }
+  }, [autoSave, template, grid, zoom, autoAdvance, currentSignature]);
+
+  const handleSaveSettings = () => {
+    const ok = saveStudioSettings({
+      template,
+      grid,
+      zoom,
+      autoAdvance,
+      autoSave,
+    });
+    if (ok) {
+      setHasSavedSettings(true);
+      setSavedSignature(currentSignature);
+      setSettingsNotice('Saved for future sessions');
+    } else {
+      setSettingsNotice('Could not save (logo image may be too large)');
+    }
+    setTimeout(() => setSettingsNotice(null), 2500);
+  };
+
+  const handleToggleAutoSave = (nextAutoSave: boolean) => {
+    setAutoSave(nextAutoSave);
+    if (nextAutoSave) {
+      const ok = saveStudioSettings({
+        template,
+        grid,
+        zoom,
+        autoAdvance,
+        autoSave: true,
+      });
+      if (ok) {
+        setHasSavedSettings(true);
+        setSavedSignature(currentSignature);
+      }
+    } else if (hasSavedSettings) {
+      saveStudioSettings({
+        template,
+        grid,
+        zoom,
+        autoAdvance,
+        autoSave: false,
+      });
+    }
+  };
+
+  const handleResetSavedSettings = () => {
+    clearStudioSettings();
+    handleUpdateGrid(DEFAULT_GRID);
+    setTemplate(DEFAULT_TEMPLATE);
+    setZoom(DEFAULT_ZOOM);
+    setAutoAdvance(DEFAULT_AUTO_ADVANCE);
+    setAutoSave(false);
+    setHasSavedSettings(false);
+    setSavedSignature(
+      serializeSettings(
+        DEFAULT_TEMPLATE,
+        DEFAULT_GRID,
+        DEFAULT_ZOOM,
+        DEFAULT_AUTO_ADVANCE
+      )
+    );
+    setSettingsNotice('Restored factory defaults');
+    setTimeout(() => setSettingsNotice(null), 2500);
   };
 
   return (
@@ -239,6 +534,7 @@ export default function App() {
           catalog={catalog}
           columns={columns}
           aliases={aliases}
+          aliasMeta={aliasMeta}
           mapping={mapping}
           dbFilename={dbFilename}
           scanFeedback={scanFeedback}
@@ -253,6 +549,13 @@ export default function App() {
           onUpdateTemplate={setTemplate}
           onUpdateMapping={setMapping}
           onOpenImportModal={handleOpenImportModal}
+          autoSave={autoSave}
+          hasSavedSettings={hasSavedSettings}
+          hasUnsavedChanges={hasUnsavedChanges}
+          settingsNotice={settingsNotice}
+          onToggleAutoSave={handleToggleAutoSave}
+          onSaveSettings={handleSaveSettings}
+          onResetSavedSettings={handleResetSavedSettings}
         />
 
         <A4SheetCanvas
@@ -274,6 +577,7 @@ export default function App() {
         initialCatalog={catalog}
         initialColumns={columns}
         initialAliases={aliases}
+        initialAliasMeta={aliasMeta}
         initialFilename={dbFilename}
         initialMapping={mapping}
         pendingFile={pendingImportFile}
