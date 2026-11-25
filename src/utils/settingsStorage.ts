@@ -20,6 +20,14 @@ export const DEFAULT_TEMPLATE: TemplateConfig = {
   priceScale: 100,
   descriptionScale: 100,
   skuScale: 100,
+  brandOffsetY: 0,
+  priceOffsetY: 0,
+  descriptionOffsetY: 0,
+  skuOffsetY: 0,
+  brandLetterSpacing: 2,
+  priceLetterSpacing: 0,
+  descriptionLetterSpacing: 0,
+  skuLetterSpacing: 0,
 };
 
 export const DEFAULT_ZOOM: ZoomLevel = 0.82;
@@ -91,6 +99,38 @@ export function loadStudioSettings(): {
         typeof parsed.template?.skuScale === 'number'
           ? parsed.template.skuScale
           : DEFAULT_TEMPLATE.skuScale,
+      brandOffsetY:
+        typeof parsed.template?.brandOffsetY === 'number'
+          ? Math.max(-40, Math.min(40, parsed.template.brandOffsetY))
+          : DEFAULT_TEMPLATE.brandOffsetY,
+      priceOffsetY:
+        typeof parsed.template?.priceOffsetY === 'number'
+          ? Math.max(-40, Math.min(40, parsed.template.priceOffsetY))
+          : DEFAULT_TEMPLATE.priceOffsetY,
+      descriptionOffsetY:
+        typeof parsed.template?.descriptionOffsetY === 'number'
+          ? Math.max(-40, Math.min(40, parsed.template.descriptionOffsetY))
+          : DEFAULT_TEMPLATE.descriptionOffsetY,
+      skuOffsetY:
+        typeof parsed.template?.skuOffsetY === 'number'
+          ? Math.max(-40, Math.min(40, parsed.template.skuOffsetY))
+          : DEFAULT_TEMPLATE.skuOffsetY,
+      brandLetterSpacing:
+        typeof parsed.template?.brandLetterSpacing === 'number'
+          ? Math.max(-2, Math.min(12, parsed.template.brandLetterSpacing))
+          : DEFAULT_TEMPLATE.brandLetterSpacing,
+      priceLetterSpacing:
+        typeof parsed.template?.priceLetterSpacing === 'number'
+          ? Math.max(-2, Math.min(12, parsed.template.priceLetterSpacing))
+          : DEFAULT_TEMPLATE.priceLetterSpacing,
+      descriptionLetterSpacing:
+        typeof parsed.template?.descriptionLetterSpacing === 'number'
+          ? Math.max(-2, Math.min(12, parsed.template.descriptionLetterSpacing))
+          : DEFAULT_TEMPLATE.descriptionLetterSpacing,
+      skuLetterSpacing:
+        typeof parsed.template?.skuLetterSpacing === 'number'
+          ? Math.max(-2, Math.min(12, parsed.template.skuLetterSpacing))
+          : DEFAULT_TEMPLATE.skuLetterSpacing,
     };
 
     const grid: GridConfig = {

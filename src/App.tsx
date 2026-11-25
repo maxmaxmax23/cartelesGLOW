@@ -25,6 +25,7 @@ import {
   loadStudioSettings,
   saveStudioSettings,
 } from './utils/settingsStorage';
+import { formatCatalogPrice } from './utils/priceFormat';
 
 function serializeSettings(
   template: TemplateConfig,
@@ -296,8 +297,9 @@ export default function App() {
   ]);
 
   const handleSelectSlot = (index: number) => {
+    const isChangingSlot = index !== safeActiveSlot;
     setActiveSlot(index);
-    if (activeTab === 'scan') {
+    if (isChangingSlot && activeTab === 'scan') {
       setTimeout(() => scannerInputRef.current?.focus(), 0);
     }
   };
@@ -324,7 +326,7 @@ export default function App() {
   const handleApplyCatalogItem = (item: CatalogRow, matchedCode?: string) => {
     const target = safeActiveSlot;
     const nextItem: StickerSlot = {
-      price: String(item[mapping.price] || ''),
+      price: formatCatalogPrice(String(item[mapping.price] || '')),
       description: String(item[mapping.description] || ''),
       sku: String(item[mapping.sku] || item[mapping.lookup] || ''),
     };
@@ -564,6 +566,8 @@ export default function App() {
           activeSlot={safeActiveSlot}
           zoom={zoom}
           onSelectSlot={handleSelectSlot}
+          onUpdateTemplate={setTemplate}
+          onUpdateSlotField={handleUpdateSlotField}
         />
       </main>
 

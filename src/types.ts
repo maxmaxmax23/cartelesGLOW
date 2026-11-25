@@ -41,6 +41,14 @@ export interface TemplateConfig {
   priceScale: number;
   descriptionScale: number;
   skuScale: number;
+  brandOffsetY: number;
+  priceOffsetY: number;
+  descriptionOffsetY: number;
+  skuOffsetY: number;
+  brandLetterSpacing: number;
+  priceLetterSpacing: number;
+  descriptionLetterSpacing: number;
+  skuLetterSpacing: number;
 }
 
 export interface StickerSlot {

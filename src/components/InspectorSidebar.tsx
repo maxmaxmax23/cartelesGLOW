@@ -11,6 +11,8 @@ import {
   StudioTab,
   TemplateConfig,
 } from '../types';
+import { formatPriceInput } from '../utils/priceFormat';
+import { DEFAULT_TEMPLATE } from '../utils/settingsStorage';
 
 interface InspectorSidebarProps {
   activeTab: StudioTab;
@@ -588,9 +590,13 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
                 </span>
                 <input
                   type="text"
+                  inputMode="numeric"
                   data-slot-edit="true"
+                  placeholder="$52.900"
                   value={slotData.price}
-                  onChange={(e) => onUpdateSlotField('price', e.target.value)}
+                  onChange={(e) =>
+                    onUpdateSlotField('price', formatPriceInput(e.target.value))
+                  }
                   className="w-full rounded bg-light-surface-container-lowest border border-light-outline-variant px-gutter-md py-gutter-sm font-body text-body-md text-light-on-surface tabular-nums focus:border-light-primary focus:ring-1 focus:ring-light-primary focus:outline-none"
                 />
               </label>
@@ -864,28 +870,44 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
             </article>
 
             <article className="rounded-md bg-light-surface-container-lowest border border-light-outline-variant p-gutter-lg flex flex-col gap-gutter-md">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-gutter-sm">
                 <h2 className="font-body text-title-md text-light-on-surface">
-                  Border &amp; Field Sizes
+                  Border &amp; Field Layout
                 </h2>
-                {(template.brandScale !== 100 ||
-                  template.priceScale !== 100 ||
-                  template.descriptionScale !== 100 ||
-                  template.skuScale !== 100) && (
+                {(template.brandScale !== DEFAULT_TEMPLATE.brandScale ||
+                  template.priceScale !== DEFAULT_TEMPLATE.priceScale ||
+                  template.descriptionScale !== DEFAULT_TEMPLATE.descriptionScale ||
+                  template.skuScale !== DEFAULT_TEMPLATE.skuScale ||
+                  template.brandOffsetY !== DEFAULT_TEMPLATE.brandOffsetY ||
+                  template.priceOffsetY !== DEFAULT_TEMPLATE.priceOffsetY ||
+                  template.descriptionOffsetY !== DEFAULT_TEMPLATE.descriptionOffsetY ||
+                  template.skuOffsetY !== DEFAULT_TEMPLATE.skuOffsetY ||
+                  template.brandLetterSpacing !== DEFAULT_TEMPLATE.brandLetterSpacing ||
+                  template.priceLetterSpacing !== DEFAULT_TEMPLATE.priceLetterSpacing ||
+                  template.descriptionLetterSpacing !== DEFAULT_TEMPLATE.descriptionLetterSpacing ||
+                  template.skuLetterSpacing !== DEFAULT_TEMPLATE.skuLetterSpacing) && (
                   <button
                     type="button"
                     onClick={() =>
                       onUpdateTemplate({
                         ...template,
-                        brandScale: 100,
-                        priceScale: 100,
-                        descriptionScale: 100,
-                        skuScale: 100,
+                        brandScale: DEFAULT_TEMPLATE.brandScale,
+                        priceScale: DEFAULT_TEMPLATE.priceScale,
+                        descriptionScale: DEFAULT_TEMPLATE.descriptionScale,
+                        skuScale: DEFAULT_TEMPLATE.skuScale,
+                        brandOffsetY: DEFAULT_TEMPLATE.brandOffsetY,
+                        priceOffsetY: DEFAULT_TEMPLATE.priceOffsetY,
+                        descriptionOffsetY: DEFAULT_TEMPLATE.descriptionOffsetY,
+                        skuOffsetY: DEFAULT_TEMPLATE.skuOffsetY,
+                        brandLetterSpacing: DEFAULT_TEMPLATE.brandLetterSpacing,
+                        priceLetterSpacing: DEFAULT_TEMPLATE.priceLetterSpacing,
+                        descriptionLetterSpacing: DEFAULT_TEMPLATE.descriptionLetterSpacing,
+                        skuLetterSpacing: DEFAULT_TEMPLATE.skuLetterSpacing,
                       })
                     }
-                    className="font-body text-label-sm text-light-primary hover:underline cursor-pointer"
+                    className="font-body text-label-sm text-light-primary hover:underline whitespace-nowrap cursor-pointer"
                   >
-                    Reset Sizes
+                    Reset Layout
                   </button>
                 )}
               </div>
@@ -915,74 +937,248 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
                 const densityScale =
                   Math.min(1, 5 / Math.max(grid.rows, 3)) *
                   Math.min(1, 2 / Math.max(grid.cols, 2));
-                const fieldSizeControls: {
-                  key: 'brandScale' | 'priceScale' | 'descriptionScale' | 'skuScale';
+                const fieldLayoutControls: {
+                  id: 'brand' | 'price' | 'description' | 'sku';
+                  scaleKey: 'brandScale' | 'priceScale' | 'descriptionScale' | 'skuScale';
+                  offsetKey: 'brandOffsetY' | 'priceOffsetY' | 'descriptionOffsetY' | 'skuOffsetY';
+                  trackingKey:
+                    | 'brandLetterSpacing'
+                    | 'priceLetterSpacing'
+                    | 'descriptionLetterSpacing'
+                    | 'skuLetterSpacing';
                   label: string;
                   basePx: number;
                   minPx: number;
                 }[] = [
-                  { key: 'brandScale', label: 'Brand / Logo Size', basePx: 20, minPx: 6 },
-                  { key: 'priceScale', label: 'Price Size', basePx: 32, minPx: 8 },
-                  { key: 'descriptionScale', label: 'Description Size', basePx: 9.5, minPx: 5 },
-                  { key: 'skuScale', label: 'SKU / Code Size', basePx: 9.5, minPx: 5 },
+                  {
+                    id: 'brand',
+                    scaleKey: 'brandScale',
+                    offsetKey: 'brandOffsetY',
+                    trackingKey: 'brandLetterSpacing',
+                    label: 'Brand / Logo',
+                    basePx: 20,
+                    minPx: 6,
+                  },
+                  {
+                    id: 'price',
+                    scaleKey: 'priceScale',
+                    offsetKey: 'priceOffsetY',
+                    trackingKey: 'priceLetterSpacing',
+                    label: 'Price',
+                    basePx: 32,
+                    minPx: 8,
+                  },
+                  {
+                    id: 'description',
+                    scaleKey: 'descriptionScale',
+                    offsetKey: 'descriptionOffsetY',
+                    trackingKey: 'descriptionLetterSpacing',
+                    label: 'Description',
+                    basePx: 9.5,
+                    minPx: 5,
+                  },
+                  {
+                    id: 'sku',
+                    scaleKey: 'skuScale',
+                    offsetKey: 'skuOffsetY',
+                    trackingKey: 'skuLetterSpacing',
+                    label: 'SKU / Code',
+                    basePx: 9.5,
+                    minPx: 5,
+                  },
                 ];
 
                 return (
-                  <div className="flex flex-col gap-gutter-md pt-gutter-xs border-t border-light-outline-variant">
-                    {fieldSizeControls.map(({ key, label, basePx, minPx }) => {
-                      const scaleVal = template[key];
-                      const renderedPx = Math.max(
+                  <div className="flex flex-col gap-gutter-sm pt-gutter-xs border-t border-light-outline-variant">
+                    <p className="font-mono text-mono-sm text-light-outline">
+                      Tip: Drag fields vertically on the active sticker or double-click to edit text.
+                    </p>
+
+                    {fieldLayoutControls.map(
+                      ({
+                        id,
+                        scaleKey,
+                        offsetKey,
+                        trackingKey,
+                        label,
+                        basePx,
                         minPx,
-                        Math.round(basePx * densityScale * (scaleVal / 100))
-                      );
-                      return (
-                        <div key={key} className="flex flex-col gap-gutter-xs">
-                          <div className="flex items-center justify-between gap-gutter-sm">
-                            <span className="font-body text-label-md text-light-on-surface-variant">
-                              {label}
-                            </span>
-                            <div className="flex items-center gap-gutter-xs shrink-0">
-                              <span className="font-mono text-mono-sm text-light-outline tabular-nums">
-                                {renderedPx}px
+                      }) => {
+                        const scaleVal = template[scaleKey];
+                        const offsetVal = template[offsetKey];
+                        const trackingVal = template[trackingKey];
+                        const renderedPx = Math.max(
+                          minPx,
+                          Math.round(basePx * densityScale * (scaleVal / 100))
+                        );
+                        const isFieldModified =
+                          scaleVal !== DEFAULT_TEMPLATE[scaleKey] ||
+                          offsetVal !== DEFAULT_TEMPLATE[offsetKey] ||
+                          trackingVal !== DEFAULT_TEMPLATE[trackingKey];
+
+                        return (
+                          <div
+                            key={id}
+                            className="rounded-md bg-light-surface-container-low/70 border border-light-outline-variant p-gutter-sm flex flex-col gap-gutter-xs"
+                          >
+                            <div className="flex items-center justify-between gap-gutter-xs">
+                              <span className="font-body text-label-lg text-light-on-surface">
+                                {label}
+                              </span>
+                              <div className="flex items-center gap-gutter-sm">
+                                <span className="font-mono text-mono-sm text-light-outline tabular-nums">
+                                  {renderedPx}px
+                                </span>
+                                {isFieldModified && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      onUpdateTemplate({
+                                        ...template,
+                                        [scaleKey]: DEFAULT_TEMPLATE[scaleKey],
+                                        [offsetKey]: DEFAULT_TEMPLATE[offsetKey],
+                                        [trackingKey]: DEFAULT_TEMPLATE[trackingKey],
+                                      })
+                                    }
+                                    className="font-body text-label-sm text-light-primary hover:underline cursor-pointer"
+                                  >
+                                    Reset
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Size (%) */}
+                            <div className="flex items-center gap-gutter-sm">
+                              <span className="w-16 shrink-0 font-body text-label-sm text-light-on-surface-variant">
+                                Size
                               </span>
                               <input
-                                type="number"
+                                type="range"
                                 min={50}
                                 max={180}
-                                aria-label={`${label} percentage`}
+                                step={1}
+                                aria-label={`${label} size`}
                                 value={scaleVal}
-                                onChange={(e) => {
-                                  const next = Math.max(
-                                    50,
-                                    Math.min(180, parseInt(e.target.value, 10) || 100)
-                                  );
-                                  onUpdateTemplate({ ...template, [key]: next });
-                                }}
-                                className="w-14 rounded bg-light-surface-container-low border border-light-outline-variant px-1.5 py-0.5 text-right font-mono text-mono-sm text-light-on-surface tabular-nums focus:border-light-primary focus:ring-1 focus:ring-light-primary focus:outline-none"
+                                onChange={(e) =>
+                                  onUpdateTemplate({
+                                    ...template,
+                                    [scaleKey]: parseInt(e.target.value, 10) || 100,
+                                  })
+                                }
+                                className="flex-1 min-w-0 accent-light-primary cursor-pointer"
                               />
-                              <span className="font-mono text-mono-sm text-light-on-surface-variant">
-                                %
+                              <div className="flex items-center gap-0.5 shrink-0">
+                                <input
+                                  type="number"
+                                  min={50}
+                                  max={180}
+                                  aria-label={`${label} size percentage`}
+                                  value={scaleVal}
+                                  onChange={(e) => {
+                                    const next = Math.max(
+                                      50,
+                                      Math.min(180, parseInt(e.target.value, 10) || 100)
+                                    );
+                                    onUpdateTemplate({ ...template, [scaleKey]: next });
+                                  }}
+                                  className="w-12 rounded bg-light-surface-container-lowest border border-light-outline-variant px-1 py-0.5 text-right font-mono text-mono-sm text-light-on-surface tabular-nums focus:border-light-primary focus:ring-1 focus:ring-light-primary focus:outline-none"
+                                />
+                                <span className="w-4 font-mono text-mono-sm text-light-on-surface-variant">
+                                  %
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Height / Y Offset (px) */}
+                            <div className="flex items-center gap-gutter-sm">
+                              <span className="w-16 shrink-0 font-body text-label-sm text-light-on-surface-variant">
+                                Height (Y)
                               </span>
+                              <input
+                                type="range"
+                                min={-40}
+                                max={40}
+                                step={0.5}
+                                aria-label={`${label} vertical height offset`}
+                                value={offsetVal}
+                                onChange={(e) =>
+                                  onUpdateTemplate({
+                                    ...template,
+                                    [offsetKey]: parseFloat(e.target.value) || 0,
+                                  })
+                                }
+                                className="flex-1 min-w-0 accent-light-primary cursor-pointer"
+                              />
+                              <div className="flex items-center gap-0.5 shrink-0">
+                                <input
+                                  type="number"
+                                  min={-40}
+                                  max={40}
+                                  step={0.5}
+                                  aria-label={`${label} vertical height offset px`}
+                                  value={offsetVal}
+                                  onChange={(e) => {
+                                    const parsed = parseFloat(e.target.value);
+                                    const next = Number.isNaN(parsed)
+                                      ? 0
+                                      : Math.max(-40, Math.min(40, parsed));
+                                    onUpdateTemplate({ ...template, [offsetKey]: next });
+                                  }}
+                                  className="w-12 rounded bg-light-surface-container-lowest border border-light-outline-variant px-1 py-0.5 text-right font-mono text-mono-sm text-light-on-surface tabular-nums focus:border-light-primary focus:ring-1 focus:ring-light-primary focus:outline-none"
+                                />
+                                <span className="w-4 font-mono text-mono-sm text-light-on-surface-variant">
+                                  px
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Letter Spacing (px) */}
+                            <div className="flex items-center gap-gutter-sm">
+                              <span className="w-16 shrink-0 font-body text-label-sm text-light-on-surface-variant">
+                                Spacing
+                              </span>
+                              <input
+                                type="range"
+                                min={-2}
+                                max={12}
+                                step={0.5}
+                                aria-label={`${label} letter spacing`}
+                                value={trackingVal}
+                                onChange={(e) =>
+                                  onUpdateTemplate({
+                                    ...template,
+                                    [trackingKey]: parseFloat(e.target.value) || 0,
+                                  })
+                                }
+                                className="flex-1 min-w-0 accent-light-primary cursor-pointer"
+                              />
+                              <div className="flex items-center gap-0.5 shrink-0">
+                                <input
+                                  type="number"
+                                  min={-2}
+                                  max={12}
+                                  step={0.5}
+                                  aria-label={`${label} letter spacing px`}
+                                  value={trackingVal}
+                                  onChange={(e) => {
+                                    const parsed = parseFloat(e.target.value);
+                                    const next = Number.isNaN(parsed)
+                                      ? 0
+                                      : Math.max(-2, Math.min(12, parsed));
+                                    onUpdateTemplate({ ...template, [trackingKey]: next });
+                                  }}
+                                  className="w-12 rounded bg-light-surface-container-lowest border border-light-outline-variant px-1 py-0.5 text-right font-mono text-mono-sm text-light-on-surface tabular-nums focus:border-light-primary focus:ring-1 focus:ring-light-primary focus:outline-none"
+                                />
+                                <span className="w-4 font-mono text-mono-sm text-light-on-surface-variant">
+                                  px
+                                </span>
+                              </div>
                             </div>
                           </div>
-                          <input
-                            type="range"
-                            min={50}
-                            max={180}
-                            step={1}
-                            aria-label={label}
-                            value={scaleVal}
-                            onChange={(e) =>
-                              onUpdateTemplate({
-                                ...template,
-                                [key]: parseInt(e.target.value, 10) || 100,
-                              })
-                            }
-                            className="w-full accent-light-primary cursor-pointer"
-                          />
-                        </div>
-                      );
-                    })}
+                        );
+                      }
+                    )}
                   </div>
                 );
               })()}
