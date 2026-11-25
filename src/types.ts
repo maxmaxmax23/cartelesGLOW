@@ -1,5 +1,10 @@
 export type CatalogRow = Record<string, string>;
 
+export interface CatalogAlias {
+  code: string;
+  target: string;
+}
+
 export interface FieldMapping {
   lookup: string;
   price: string;

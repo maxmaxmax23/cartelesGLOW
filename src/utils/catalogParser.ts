@@ -1,4 +1,4 @@
-import { CatalogRow, FieldMapping } from '../types';
+import { CatalogAlias, CatalogRow, FieldMapping } from '../types';
 
 function splitCsvLine(line: string, delimiter: string): string[] {
   const result: string[] = [];
@@ -25,7 +25,13 @@ function splitCsvLine(line: string, delimiter: string): string[] {
   return result;
 }
 
-export function parseCsv(text: string): CatalogRow[] {
+export interface ParsedCatalogResult {
+  rows: CatalogRow[];
+  columns: string[];
+  aliases: CatalogAlias[];
+}
+
+export function parseCsv(text: string): ParsedCatalogResult {
   const lines = text
     .split(/\r?\n/)
     .map((l) => l.trim())
@@ -35,7 +41,7 @@ export function parseCsv(text: string): CatalogRow[] {
     throw new Error('CSV must include a header row and at least one data row.');
   }
 
-  const headerLine = lines[0];
+  const headerLine = lines[0].replace(/^\uFEFF/, '');
   const commaCount = (headerLine.match(/,/g) || []).length;
   const semiCount = (headerLine.match(/;/g) || []).length;
   const tabCount = (headerLine.match(/\t/g) || []).length;
@@ -47,28 +53,104 @@ export function parseCsv(text: string): CatalogRow[] {
     delimiter = '\t';
   }
 
-  const headers = splitCsvLine(headerLine, delimiter).map((h, idx) => h || `column_${idx + 1}`);
+  const rawHeaders = splitCsvLine(headerLine, delimiter);
+  const dataLines = lines.slice(1).map((line) => splitCsvLine(line, delimiter));
 
-  return lines.slice(1).map((line) => {
-    const values = splitCsvLine(line, delimiter);
+  // Detect side-by-side Excel lookup layout:
+  // e.g. Articulo; Desc. Articulo; L. de precio; Descripcion; Vigencia; Precio; ; Codigo; Articulo; Descripcion
+  // Look for a secondary block starting at a `Codigo` (or barcode) column followed by a duplicate primary key column (e.g. `Articulo`).
+  const normalized = rawHeaders.map((h) => h.toLowerCase());
+  let aliasCodeIdx = -1;
+  let aliasTargetIdx = -1;
+
+  for (let i = 1; i < normalized.length - 1; i++) {
+    const h = normalized[i];
+    const isCodeCol =
+      h === 'codigo' || h === 'código' || h === 'barcode' || h === 'ean';
+    if (!isCodeCol) continue;
+
+    // Check if an earlier column before i already shares a header name with a column after i (like `Articulo`)
+    const leftSet = new Set(normalized.slice(0, i).filter(Boolean));
+    const dupIdx = normalized.findIndex(
+      (col, idx) => idx > i && col !== '' && leftSet.has(col)
+    );
+    const hasEmptyGapBefore = i > 0 && normalized[i - 1] === '';
+
+    if (dupIdx !== -1) {
+      aliasCodeIdx = i;
+      aliasTargetIdx = dupIdx;
+      break;
+    } else if (hasEmptyGapBefore && i + 1 < normalized.length && normalized[i + 1] !== '') {
+      aliasCodeIdx = i;
+      aliasTargetIdx = i + 1;
+      break;
+    }
+  }
+
+  const aliases: CatalogAlias[] = [];
+  const mainEndIdx = aliasCodeIdx !== -1 ? aliasCodeIdx : rawHeaders.length;
+
+  // Build deduplicated column descriptors for the main table (ignoring blank separator columns)
+  const usedNames = new Map<string, number>();
+  const mainCols: { index: number; name: string }[] = [];
+
+  for (let i = 0; i < mainEndIdx; i++) {
+    const rawName = rawHeaders[i].trim();
+    if (!rawName) continue; // skip empty separator columns (e.g. col G)
+
+    const count = (usedNames.get(rawName) || 0) + 1;
+    usedNames.set(rawName, count);
+    const uniqueName = count === 1 ? rawName : `${rawName} (${count})`;
+    mainCols.push({ index: i, name: uniqueName });
+  }
+
+  if (mainCols.length === 0) {
+    throw new Error('No valid column headers found in CSV.');
+  }
+
+  const rows: CatalogRow[] = [];
+
+  for (const values of dataLines) {
+    if (aliasCodeIdx !== -1 && aliasTargetIdx !== -1) {
+      const code = (values[aliasCodeIdx] ?? '').trim();
+      const target = (values[aliasTargetIdx] ?? '').trim();
+      if (code && target) {
+        aliases.push({ code, target });
+      }
+    }
+
     const obj: CatalogRow = {};
-    headers.forEach((h, idx) => {
-      obj[h] = values[idx] ?? '';
-    });
-    return obj;
-  });
+    let hasAnyValue = false;
+    for (const col of mainCols) {
+      const val = (values[col.index] ?? '').trim();
+      if (val) hasAnyValue = true;
+      obj[col.name] = val;
+    }
+
+    if (hasAnyValue) {
+      rows.push(obj);
+    }
+  }
+
+  if (rows.length === 0) {
+    throw new Error('No valid data rows found in CSV.');
+  }
+
+  return {
+    rows,
+    columns: mainCols.map((c) => c.name),
+    aliases,
+  };
 }
 
 export function parseCatalogText(
   rawText: string,
   filename = ''
-): { rows: CatalogRow[]; columns: string[] } {
+): ParsedCatalogResult {
   const trimmed = rawText.trim();
   if (!trimmed) {
     throw new Error('Input is empty.');
   }
-
-  let rawRows: unknown[] = [];
 
   const looksLikeJson =
     filename.toLowerCase().endsWith('.json') ||
@@ -77,6 +159,7 @@ export function parseCatalogText(
 
   if (looksLikeJson) {
     const parsed = JSON.parse(trimmed);
+    let rawRows: unknown[] = [];
     if (Array.isArray(parsed)) {
       rawRows = parsed;
     } else if (parsed && typeof parsed === 'object') {
@@ -88,14 +171,19 @@ export function parseCatalogText(
       if (Array.isArray(candidate)) {
         rawRows = candidate;
       } else {
-        throw new Error('JSON object must contain an array under "items", "data", or "products".');
+        throw new Error(
+          'JSON object must contain an array under "items", "data", or "products".'
+        );
       }
     } else {
       throw new Error('JSON must be an array of product objects.');
     }
 
     const rows: CatalogRow[] = rawRows
-      .filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object'))
+      .filter(
+        (item): item is Record<string, unknown> =>
+          Boolean(item && typeof item === 'object')
+      )
       .map((item) => {
         const row: CatalogRow = {};
         for (const [k, v] of Object.entries(item)) {
@@ -110,28 +198,50 @@ export function parseCatalogText(
 
     const colSet = new Set<string>();
     rows.forEach((r) => Object.keys(r).forEach((k) => colSet.add(k)));
-    return { rows, columns: Array.from(colSet) };
+    return { rows, columns: Array.from(colSet), aliases: [] };
   }
 
-  const rows = parseCsv(trimmed);
-  if (rows.length === 0) {
-    throw new Error('No rows parsed from CSV.');
-  }
-  const columns = Object.keys(rows[0]);
-  return { rows, columns };
+  return parseCsv(trimmed);
 }
 
 export function autoGuessMapping(columns: string[]): FieldMapping {
   if (columns.length === 0) {
     return { lookup: '', price: '', description: '', sku: '' };
   }
-  const findCol = (patterns: string[], fallback = columns[0]) =>
-    columns.find((c) => patterns.some((p) => c.toLowerCase().includes(p))) || fallback;
+
+  // Match exact header names in priority order first, then fall back to substring patterns
+  const findCol = (
+    exactCandidates: string[],
+    partialPatterns: string[],
+    fallback = columns[0]
+  ) => {
+    for (const exact of exactCandidates) {
+      const found = columns.find((c) => c.toLowerCase().trim() === exact);
+      if (found) return found;
+    }
+    for (const pattern of partialPatterns) {
+      const found = columns.find((c) => c.toLowerCase().includes(pattern));
+      if (found) return found;
+    }
+    return fallback;
+  };
 
   return {
-    lookup: findCol(['barcode', 'ean', 'upc', 'gtin', 'sku', 'code', 'id']),
-    price: findCol(['price', 'precio', 'valor', 'cost', 'amount', 'pvp']),
-    description: findCol(['desc', 'name', 'title', 'producto', 'nombre', 'item']),
-    sku: findCol(['sku', 'ref', 'code', 'barcode']),
+    lookup: findCol(
+      ['barcode', 'ean', 'upc', 'codigo', 'código', 'articulo', 'artículo', 'sku', 'code', 'id'],
+      ['barcode', 'ean', 'upc', 'gtin', 'codigo', 'articulo', 'sku', 'code', 'id']
+    ),
+    price: findCol(
+      ['precio', 'price', 'pvp', 'valor', 'amount', 'cost'],
+      ['precio', 'price', 'valor', 'cost', 'amount', 'pvp']
+    ),
+    description: findCol(
+      ['desc. articulo', 'desc articulo', 'description', 'producto', 'descripcion', 'descripción', 'name', 'title', 'nombre'],
+      ['desc. art', 'desc art', 'description', 'producto', 'desc', 'name', 'title', 'nombre', 'item']
+    ),
+    sku: findCol(
+      ['sku', 'articulo', 'artículo', 'ref', 'referencia', 'code', 'codigo', 'código', 'barcode'],
+      ['sku', 'articulo', 'ref', 'code', 'codigo', 'barcode']
+    ),
   };
 }

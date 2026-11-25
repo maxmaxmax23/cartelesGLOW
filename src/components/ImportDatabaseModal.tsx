@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CatalogRow, FieldMapping } from '../types';
+import { CatalogAlias, CatalogRow, FieldMapping } from '../types';
 import { autoGuessMapping, parseCatalogText } from '../utils/catalogParser';
 
 interface ImportDatabaseModalProps {
@@ -7,12 +7,14 @@ interface ImportDatabaseModalProps {
   onClose: () => void;
   initialCatalog: CatalogRow[];
   initialColumns: string[];
+  initialAliases: CatalogAlias[];
   initialFilename: string;
   initialMapping: FieldMapping;
   pendingFile?: { text: string; filename: string } | null;
   onApply: (payload: {
     catalog: CatalogRow[];
     columns: string[];
+    aliases: CatalogAlias[];
     filename: string;
     mapping: FieldMapping;
   }) => void;
@@ -23,6 +25,7 @@ export const ImportDatabaseModal: React.FC<ImportDatabaseModalProps> = ({
   onClose,
   initialCatalog,
   initialColumns,
+  initialAliases,
   initialFilename,
   initialMapping,
   pendingFile,
@@ -32,6 +35,7 @@ export const ImportDatabaseModal: React.FC<ImportDatabaseModalProps> = ({
   const [filename, setFilename] = useState(initialFilename);
   const [rows, setRows] = useState<CatalogRow[]>(initialCatalog);
   const [columns, setColumns] = useState<string[]>(initialColumns);
+  const [aliases, setAliases] = useState<CatalogAlias[]>(initialAliases);
   const [mapping, setMapping] = useState<FieldMapping>(initialMapping);
   const [pasteText, setPasteText] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -48,21 +52,24 @@ export const ImportDatabaseModal: React.FC<ImportDatabaseModalProps> = ({
         setFilename(pendingFile.filename);
         setRows(parsed.rows);
         setColumns(parsed.columns);
+        setAliases(parsed.aliases);
         setMapping(autoGuessMapping(parsed.columns));
       } catch (err) {
         setFilename(pendingFile.filename);
         setErrorMsg(err instanceof Error ? err.message : 'Could not parse CSV or JSON format.');
         setRows(initialCatalog);
         setColumns(initialColumns);
+        setAliases(initialAliases);
         setMapping(initialMapping);
       }
     } else {
       setFilename(initialFilename);
       setRows(initialCatalog);
       setColumns(initialColumns);
+      setAliases(initialAliases);
       setMapping(initialMapping);
     }
-  }, [isOpen, pendingFile, initialCatalog, initialColumns, initialFilename, initialMapping]);
+  }, [isOpen, pendingFile, initialCatalog, initialColumns, initialAliases, initialFilename, initialMapping]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -83,6 +90,7 @@ export const ImportDatabaseModal: React.FC<ImportDatabaseModalProps> = ({
       setFilename(name);
       setRows(parsed.rows);
       setColumns(parsed.columns);
+      setAliases(parsed.aliases);
       setMapping(autoGuessMapping(parsed.columns));
       setErrorMsg(null);
     } catch (err) {
@@ -117,6 +125,7 @@ export const ImportDatabaseModal: React.FC<ImportDatabaseModalProps> = ({
     onApply({
       catalog: rows,
       columns,
+      aliases,
       filename,
       mapping,
     });
@@ -212,6 +221,7 @@ export const ImportDatabaseModal: React.FC<ImportDatabaseModalProps> = ({
                 </span>
                 <span>
                   {filename} · {rows.length} rows
+                  {aliases.length > 0 ? ` · ${aliases.length} aliases` : ''}
                 </span>
               </span>
             </div>
@@ -433,7 +443,9 @@ export const ImportDatabaseModal: React.FC<ImportDatabaseModalProps> = ({
         {/* Modal Footer */}
         <footer className="px-gutter-xl py-gutter-lg bg-light-surface-container-low border-t border-light-outline-variant flex flex-wrap items-center justify-between gap-gutter-md">
           <p className="font-mono text-mono-sm text-light-on-surface-variant tabular-nums">
-            {validCount} valid records · {missingLookupCount} missing lookup keys
+            {validCount} valid records
+            {aliases.length > 0 ? ` · ${aliases.length} barcode aliases` : ''} ·{' '}
+            {missingLookupCount} missing lookup keys
           </p>
           <div className="flex items-center gap-gutter-sm">
             <button

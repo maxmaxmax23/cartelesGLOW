@@ -5,6 +5,7 @@ import { InspectorSidebar } from './components/InspectorSidebar';
 import { StudioHeader } from './components/StudioHeader';
 import { DEFAULT_CATALOG, DEFAULT_COLUMNS } from './data/defaultCatalog';
 import {
+  CatalogAlias,
   CatalogRow,
   FieldMapping,
   GridConfig,
@@ -20,6 +21,7 @@ export default function App() {
 
   const [catalog, setCatalog] = useState<CatalogRow[]>(DEFAULT_CATALOG);
   const [columns, setColumns] = useState<string[]>(DEFAULT_COLUMNS);
+  const [aliases, setAliases] = useState<CatalogAlias[]>([]);
   const [dbFilename, setDbFilename] = useState<string>('sample_glowup.json');
   const [mapping, setMapping] = useState<FieldMapping>({
     lookup: 'sku',
@@ -196,15 +198,19 @@ export default function App() {
   const handleApplyImportedDatabase = (payload: {
     catalog: CatalogRow[];
     columns: string[];
+    aliases: CatalogAlias[];
     filename: string;
     mapping: FieldMapping;
   }) => {
     setCatalog(payload.catalog);
     setColumns(payload.columns);
+    setAliases(payload.aliases);
     setDbFilename(payload.filename);
     setMapping(payload.mapping);
+    const aliasMsg =
+      payload.aliases.length > 0 ? ` (${payload.aliases.length} barcode aliases)` : '';
     setScanFeedback({
-      message: `Loaded ${payload.catalog.length} records from ${payload.filename}`,
+      message: `Loaded ${payload.catalog.length} records${aliasMsg} from ${payload.filename}`,
       isSuccess: true,
     });
   };
@@ -232,6 +238,7 @@ export default function App() {
           scannerInputRef={scannerInputRef}
           catalog={catalog}
           columns={columns}
+          aliases={aliases}
           mapping={mapping}
           dbFilename={dbFilename}
           scanFeedback={scanFeedback}
@@ -266,6 +273,7 @@ export default function App() {
         }}
         initialCatalog={catalog}
         initialColumns={columns}
+        initialAliases={aliases}
         initialFilename={dbFilename}
         initialMapping={mapping}
         pendingFile={pendingImportFile}

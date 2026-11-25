@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import {
   BorderStyle,
+  CatalogAlias,
   CatalogRow,
   FieldMapping,
   GridConfig,
@@ -19,6 +20,7 @@ interface InspectorSidebarProps {
   scannerInputRef: React.RefObject<HTMLInputElement | null>;
   catalog: CatalogRow[];
   columns: string[];
+  aliases: CatalogAlias[];
   mapping: FieldMapping;
   dbFilename: string;
   scanFeedback: { message: string; isSuccess: boolean } | null;
@@ -45,6 +47,7 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
   scannerInputRef,
   catalog,
   columns,
+  aliases,
   mapping,
   dbFilename,
   scanFeedback,
@@ -74,18 +77,96 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
     { id: 'data', label: 'Data' },
   ];
 
+  // O(1) lookup indexes mirroring Excel:
+  // B2 = SI.ND(BUSCARV(A2; db!$H:$J; 2; 0); BUSCARV(A2; db!$A:$F; 1; 0))
+  // C2 = BUSCARV(B2; db!$A$2:$F$54000; 2; FALSO)
+  const { productByKey, aliasToTarget, targetToAliases } = useMemo(() => {
+    const pMap = new Map<string, CatalogRow>();
+    for (const row of catalog) {
+      const lookupVal = String(row[mapping.lookup] || '').trim().toLowerCase();
+      if (lookupVal && !pMap.has(lookupVal)) {
+        pMap.set(lookupVal, row);
+      }
+      const skuVal = String(row[mapping.sku] || '').trim().toLowerCase();
+      if (skuVal && !pMap.has(skuVal)) {
+        pMap.set(skuVal, row);
+      }
+      const barcodeVal = String(row.barcode || '').trim().toLowerCase();
+      if (barcodeVal && !pMap.has(barcodeVal)) {
+        pMap.set(barcodeVal, row);
+      }
+    }
+
+    const aToT = new Map<string, string>();
+    const tToA = new Map<string, string[]>();
+    for (const alias of aliases) {
+      const code = alias.code.trim().toLowerCase();
+      const target = alias.target.trim().toLowerCase();
+      if (!code || !target) continue;
+      if (!aToT.has(code)) {
+        aToT.set(code, target);
+      }
+      const list = tToA.get(target);
+      if (list) {
+        list.push(alias.code.trim());
+      } else {
+        tToA.set(target, [alias.code.trim()]);
+      }
+    }
+
+    return { productByKey: pMap, aliasToTarget: aToT, targetToAliases: tToA };
+  }, [catalog, aliases, mapping.lookup, mapping.sku]);
+
   const autocompleteMatches = useMemo(() => {
     const q = scanQuery.trim().toLowerCase();
     if (!q) return [];
-    return catalog
-      .filter((row) => {
-        const v1 = String(row[mapping.lookup] || '').toLowerCase();
-        const v2 = String(row[mapping.description] || '').toLowerCase();
-        const v3 = String(row[mapping.sku] || '').toLowerCase();
-        return v1.includes(q) || v2.includes(q) || v3.includes(q);
-      })
-      .slice(0, 6);
-  }, [scanQuery, catalog, mapping]);
+
+    const results: { row: CatalogRow; matchedAlias?: string }[] = [];
+    const seen = new Set<CatalogRow>();
+
+    // Exact H:J alias or A:F key match first
+    const exactAliasTarget = aliasToTarget.get(q);
+    if (exactAliasTarget) {
+      const hit = productByKey.get(exactAliasTarget);
+      if (hit) {
+        seen.add(hit);
+        results.push({ row: hit, matchedAlias: scanQuery.trim() });
+      }
+    }
+    const directHit = productByKey.get(q);
+    if (directHit && !seen.has(directHit)) {
+      seen.add(directHit);
+      results.push({ row: directHit });
+    }
+
+    // Partial match across main columns and H:J barcode aliases (capped at 6)
+    for (const row of catalog) {
+      if (results.length >= 6) break;
+      if (seen.has(row)) continue;
+
+      const v1 = String(row[mapping.lookup] || '').toLowerCase();
+      const v2 = String(row[mapping.description] || '').toLowerCase();
+      const v3 = String(row[mapping.sku] || '').toLowerCase();
+
+      if (v1.includes(q) || v2.includes(q) || v3.includes(q)) {
+        seen.add(row);
+        results.push({ row });
+        continue;
+      }
+
+      const rowKey = v1 || v3;
+      const rowAliases = rowKey ? targetToAliases.get(rowKey) : undefined;
+      if (rowAliases) {
+        const matchedCode = rowAliases.find((c) => c.toLowerCase().includes(q));
+        if (matchedCode) {
+          seen.add(row);
+          results.push({ row, matchedAlias: matchedCode });
+        }
+      }
+    }
+
+    return results;
+  }, [scanQuery, catalog, mapping, aliasToTarget, productByKey, targetToAliases]);
 
   const filteredCatalogPreview = useMemo(() => {
     const q = catalogFilter.trim().toLowerCase();
@@ -94,9 +175,12 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
       const v1 = String(row[mapping.lookup] || '').toLowerCase();
       const v2 = String(row[mapping.description] || '').toLowerCase();
       const v3 = String(row[mapping.sku] || '').toLowerCase();
-      return v1.includes(q) || v2.includes(q) || v3.includes(q);
+      if (v1.includes(q) || v2.includes(q) || v3.includes(q)) return true;
+      const rowKey = v1 || v3;
+      const rowAliases = rowKey ? targetToAliases.get(rowKey) : undefined;
+      return Boolean(rowAliases?.some((c) => c.toLowerCase().includes(q)));
     });
-  }, [catalog, catalogFilter, mapping]);
+  }, [catalog, catalogFilter, mapping, targetToAliases]);
 
   const handleSelectSuggestion = (item: CatalogRow) => {
     onApplyCatalogItem(item);
@@ -135,7 +219,7 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
     if (e.key === 'Enter') {
       e.preventDefault();
       if (dropdownOpen && highlightedIdx >= 0 && autocompleteMatches[highlightedIdx]) {
-        handleSelectSuggestion(autocompleteMatches[highlightedIdx]);
+        handleSelectSuggestion(autocompleteMatches[highlightedIdx].row);
         return;
       }
 
@@ -143,20 +227,21 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
       if (!raw) return;
       const q = raw.toLowerCase();
 
-      let match = catalog.find(
-        (row) =>
-          String(row[mapping.lookup] || '').toLowerCase() === q ||
-          String(row.barcode || '').toLowerCase() === q ||
-          String(row[mapping.sku] || '').toLowerCase() === q
-      );
+      // Stage 1 (H:J): look up scanned barcode/code in alias table -> canonical key
+      let match: CatalogRow | undefined;
+      const aliasTarget = aliasToTarget.get(q);
+      if (aliasTarget) {
+        match = productByKey.get(aliasTarget);
+      }
 
+      // Stage 2 (A:F): fall back to direct key lookup
       if (!match) {
-        match = catalog.find(
-          (row) =>
-            String(row[mapping.lookup] || '').toLowerCase().includes(q) ||
-            String(row[mapping.description] || '').toLowerCase().includes(q) ||
-            String(row[mapping.sku] || '').toLowerCase().includes(q)
-        );
+        match = productByKey.get(q);
+      }
+
+      // Stage 3: partial match fallback (if typed manually)
+      if (!match) {
+        match = autocompleteMatches[0]?.row;
       }
 
       if (match) {
@@ -304,7 +389,7 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
 
                 {dropdownOpen && autocompleteMatches.length > 0 && (
                   <div className="absolute left-0 right-0 top-full mt-1 z-20 max-h-56 overflow-y-auto rounded-md bg-light-surface-container-lowest border border-light-outline-variant shadow-md divide-y divide-light-outline-variant">
-                    {autocompleteMatches.map((m, idx) => (
+                    {autocompleteMatches.map(({ row: m, matchedAlias }, idx) => (
                       <button
                         key={idx}
                         type="button"
@@ -322,7 +407,8 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
                           <div className="font-body text-label-md text-light-on-surface truncate">
                             {m[mapping.description] || ''}
                           </div>
-                          <div className="font-mono text-mono-sm text-light-outline">
+                          <div className="font-mono text-mono-sm text-light-outline truncate">
+                            {matchedAlias ? `${matchedAlias} → ` : ''}
                             {m[mapping.lookup] || m[mapping.sku] || ''}
                           </div>
                         </div>
