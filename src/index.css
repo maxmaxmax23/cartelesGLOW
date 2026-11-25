@@ -153,40 +153,73 @@
   box-shadow: 0 12px 36px -8px rgba(26, 27, 34, 0.16), 0 2px 8px rgba(26, 27, 34, 0.08);
 }
 
-/* Print rules: output only the A4 sheet at exact 1:1 physical dimensions */
+/* Print rules: output only the A4 sheet at exact 1:1 physical dimensions on a single page */
 @media print {
   @page {
     size: A4 portrait;
     margin: 0;
   }
-  body {
-    background: #FFFFFF !important;
+  html,
+  body,
+  #root {
+    width: 210mm !important;
+    height: 296.5mm !important;
+    min-height: 0 !important;
+    max-height: 296.5mm !important;
     margin: 0 !important;
     padding: 0 !important;
+    overflow: hidden !important;
+    background: #FFFFFF !important;
   }
   .no-print {
     display: none !important;
   }
+  .app-shell,
+  .print-main {
+    display: block !important;
+    width: 210mm !important;
+    height: 296.5mm !important;
+    min-height: 0 !important;
+    max-height: 296.5mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
   .print-stage {
     padding: 0 !important;
     margin: 0 !important;
+    width: 210mm !important;
+    height: 296.5mm !important;
     background: transparent !important;
     display: block !important;
-    overflow: visible !important;
+    overflow: hidden !important;
   }
   .a4-zoom-wrapper {
     transform: none !important;
     width: 210mm !important;
-    height: 297mm !important;
+    height: 296.5mm !important;
     margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
   }
   .a4-sheet {
+    width: 210mm !important;
+    height: 296.5mm !important;
+    max-height: 296.5mm !important;
     box-shadow: none !important;
     margin: 0 !important;
+    overflow: hidden !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    break-after: avoid !important;
+    page-break-after: avoid !important;
   }
   .sticker-slot {
     outline: none !important;
     background-color: transparent !important;
+    overflow: hidden !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
   }
   .slot-badge {
     display: none !important;

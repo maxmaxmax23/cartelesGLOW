@@ -512,7 +512,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-light-surface text-light-on-surface">
+    <div className="app-shell min-h-screen flex flex-col bg-light-surface text-light-on-surface">
       <StudioHeader
         catalogCount={catalog.length}
         filledCount={filledCount}
@@ -523,7 +523,7 @@ export default function App() {
         onPrint={() => window.print()}
       />
 
-      <main className="flex-1 grid grid-cols-1 lg:grid-cols-12 items-stretch">
+      <main className="print-main flex-1 grid grid-cols-1 lg:grid-cols-12 items-stretch">
         <InspectorSidebar
           activeTab={activeTab}
           onTabChange={setActiveTab}
